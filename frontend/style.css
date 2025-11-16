@@ -384,7 +384,8 @@ select:focus {
 }
 
 .btn-edit,
-.btn-assign {
+.btn-assign,
+.btn-complete {
     padding: 8px 16px;
     border: none;
     border-radius: 6px;
@@ -411,6 +412,17 @@ select:focus {
 
 .btn-assign:hover {
     background: #388E3C;
+    transform: translateY(-1px);
+}
+
+.btn-complete {
+    background: #FF9800;
+    color: white;
+    width: 100%;
+}
+
+.btn-complete:hover {
+    background: #F57C00;
     transform: translateY(-1px);
 }
 

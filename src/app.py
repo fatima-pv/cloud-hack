@@ -232,13 +232,10 @@ def lambda_handler(event, context):
         except Exception as e:
             return _resp(500, {'error': f'Error al obtener incidente: {str(e)}'})
         
-        # Save old estado to detect changes
-        old_estado = item.get('estado', '')
-        
         # Update fields
         now = datetime.datetime.utcnow().isoformat()
         
-        # Campos editables por admin
+        # Campos editables por admin (SIN estado - ahora es automático)
         if 'titulo' in data:
             item['titulo'] = data['titulo']
         if 'descripcion' in data:
@@ -251,18 +248,9 @@ def lambda_handler(event, context):
             item['lugar_especifico'] = data['lugar_especifico']
         if 'Nivel_Riesgo' in data:
             item['Nivel_Riesgo'] = data['Nivel_Riesgo']
-        if 'estado' in data:
-            new_estado = data['estado']
-            item['estado'] = new_estado
-            
-            # Si cambió el estado, notificar al usuario que creó el incidente
-            if old_estado != new_estado and item.get('creado_por'):
-                _notify_user_estado_change(
-                    item.get('creado_por'),
-                    item,
-                    old_estado,
-                    new_estado
-                )
+        
+        # NOTA: El estado ya NO es editable manualmente
+        # Se cambia automáticamente al asignar o completar
         
         item['ultima_modificacion'] = now
         item['modificado_por'] = current_user.get('email')
@@ -334,16 +322,16 @@ def lambda_handler(event, context):
         
         return _resp(200, item)
 
-    # COMPLETE: PUT /incidentes/{id}/completar (TRABAJADOR o ADMIN)
+    # COMPLETE: PUT /incidentes/{id}/completar (Solo TRABAJADOR asignado)
     if path.endswith('/completar') and method == 'PUT':
         if not current_user:
             return _resp(401, {'error': 'No autenticado'})
         
         user_tipo = current_user.get('tipo')
         
-        # Solo trabajador o admin pueden completar
-        if user_tipo not in ['trabajador', 'admin']:
-            return _resp(403, {'error': 'Solo trabajadores o administradores pueden completar incidentes'})
+        # Solo trabajador puede completar su propia tarea
+        if user_tipo != 'trabajador':
+            return _resp(403, {'error': 'Solo trabajadores pueden completar incidentes'})
         
         incident_id = path.split('/')[-2]
         
@@ -357,24 +345,23 @@ def lambda_handler(event, context):
         except Exception as e:
             return _resp(500, {'error': f'Error al obtener incidente: {str(e)}'})
         
-        # Si es trabajador, verificar que está asignado a él
-        if user_tipo == 'trabajador':
-            if item.get('asignado_a') != current_user.get('email'):
-                return _resp(403, {'error': 'Solo puedes completar incidentes asignados a ti'})
+        # Verificar que el incidente está asignado a este trabajador
+        if item.get('asignado_a') != current_user.get('email'):
+            return _resp(403, {'error': 'Solo puedes completar incidentes asignados a ti'})
         
         # Save old estado
         old_estado = item.get('estado', '')
         
-        # Marcar como resuelto (según requerimientos)
+        # Marcar como resuelto
         now = datetime.datetime.utcnow().isoformat()
         item['estado'] = 'resuelto'
-        item['fecha_resuelto'] = now
-        item['resuelto_por'] = current_user.get('email')
+        item['fecha_completado'] = now
+        item['completado_por'] = current_user.get('email')
         
         table.put_item(Item=item)
         
-        # Notificar al usuario creador del cambio de estado
-        if item.get('creado_por') and old_estado != 'resuelto':
+        # Notificar al estudiante que creó el incidente
+        if item.get('creado_por'):
             _notify_user_estado_change(
                 item.get('creado_por'),
                 item,

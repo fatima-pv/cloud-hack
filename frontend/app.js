@@ -583,6 +583,13 @@ function renderIncidentCard(incident) {
                 <button class="btn-assign" data-id="${incident.id}">👤 Asignar</button>
             </div>
         `;
+    } else if (isTrabajador && incident.estado === 'en atención' && incident.asignado_a === currentUser.email) {
+        // Trabajador solo ve botón "Completar Tarea" si el incidente está asignado a él
+        actionButtons = `
+            <div class="incident-actions">
+                <button class="btn-complete" data-id="${incident.id}">✅ Marcar como Completado</button>
+            </div>
+        `;
     }
     
     return `
@@ -635,13 +642,8 @@ async function editIncident(incidentId) {
                         <option value="alto" ${incident.Nivel_Riesgo === 'alto' ? 'selected' : ''}>Alto</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Estado:</label>
-                    <select id="edit-estado">
-                        <option value="pendiente" ${incident.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
-                        <option value="en atención" ${incident.estado === 'en atención' ? 'selected' : ''}>En Atención</option>
-                        <option value="resuelto" ${incident.estado === 'resuelto' ? 'selected' : ''}>Resuelto</option>
-                    </select>
+                <div class="info-box" style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                    <small>ℹ️ <strong>Nota:</strong> El estado se cambia automáticamente al asignar o completar el incidente.</small>
                 </div>
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">Guardar</button>
@@ -660,8 +662,8 @@ async function editIncident(incidentId) {
             titulo: document.getElementById('edit-titulo').value,
             descripcion: document.getElementById('edit-descripcion').value,
             tipo: document.getElementById('edit-tipo').value,
-            Nivel_Riesgo: document.getElementById('edit-riesgo').value,
-            estado: document.getElementById('edit-estado').value
+            Nivel_Riesgo: document.getElementById('edit-riesgo').value
+            // Estado removido - ahora es automático
         };
         
         try {
@@ -848,6 +850,35 @@ async function assignIncident(incidentId) {
     });
 }
 
+// Trabajador: Completar tarea
+async function completarTarea(incidentId) {
+    if (!confirm('¿Marcar esta tarea como completada?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${getApiUrl()}/${incidentId}/completar`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Email': currentUser.email
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('✅ ¡Tarea completada exitosamente!');
+            // Recargar incidentes
+            setTimeout(() => loadIncidents(), 500);
+        } else {
+            alert(`❌ Error: ${data.error || 'No se pudo completar la tarea'}`);
+        }
+    } catch (error) {
+        alert(`❌ Error: ${error.message}`);
+    }
+}
+
 // Get incident by ID
 async function getIncidentById(id) {
     try {
@@ -913,8 +944,9 @@ async function getWorkers() {
     }
 }
 
-// Attach event listeners for admin buttons
+// Attach event listeners for admin and worker buttons
 function attachAdminEventListeners() {
+    // Admin buttons
     document.querySelectorAll('.btn-edit').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.target.getAttribute('data-id');
@@ -926,6 +958,14 @@ function attachAdminEventListeners() {
         btn.addEventListener('click', (e) => {
             const id = e.target.getAttribute('data-id');
             assignIncident(id);
+        });
+    });
+    
+    // Worker buttons
+    document.querySelectorAll('.btn-complete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.target.getAttribute('data-id');
+            completarTarea(id);
         });
     });
 }
