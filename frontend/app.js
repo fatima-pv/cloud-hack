@@ -344,10 +344,8 @@ async function loadIncidents() {
         
         incidentsList.innerHTML = incidents.map(incident => renderIncidentCard(incident)).join('');
         
-        // Add event listeners for admin actions
-        if (currentUser.tipo === 'admin') {
-            attachAdminEventListeners();
-        }
+        // Add event listeners for all action buttons (admin and worker)
+        attachAdminEventListeners();
     } catch (error) {
         incidentsList.innerHTML = `<p class="error" style="color: #721c24; text-align: center; padding: 20px;">❌ Error loading incidents: ${error.message}<br><small>Check browser console for details</small></p>`;
         console.error('Full error:', error);

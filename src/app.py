@@ -329,6 +329,7 @@ def lambda_handler(event, context):
         
         # Asignar
         now = datetime.datetime.utcnow().isoformat()
+        old_estado = item.get('estado', 'reportado')
         item['asignado_a'] = trabajador_email
         item['asignado_a_nombre'] = trabajador.get('nombre')
         item['asignado_a_especialidad'] = trabajador.get('especialidad')
@@ -338,7 +339,12 @@ def lambda_handler(event, context):
         
         table.put_item(Item=item)
         
+        # Notificar al trabajador sobre la nueva asignación
         _notify_asignacion(trabajador_email, item)
+        
+        # Notificar al estudiante sobre el cambio de estado
+        if item.get('creado_por') and old_estado != 'asignado':
+            _notify_estado_change(item.get('creado_por'), item, old_estado, 'asignado')
         
         return _resp(200, item)
 
