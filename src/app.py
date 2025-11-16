@@ -41,6 +41,10 @@ def lambda_handler(event, context):
     # - POST /reports : create a report accepting only specified fields
     # - GET  /incidentes : list all reports
 
+    # Handle OPTIONS for CORS preflight
+    if method == 'OPTIONS':
+        return _resp(200, {'message': 'OK'})
+
     # CREATE: POST /incidentes
     if path.rstrip('/') == '/incidentes' and method == 'POST':
         data = _parse_body(event)

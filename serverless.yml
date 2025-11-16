@@ -55,6 +55,19 @@ functions:
               - X-Amz-Security-Token
               - X-Amz-User-Agent
             allowCredentials: false
+      - http:
+          path: /incidentes
+          method: options
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
     environment:
       TABLE_NAME: ${self:custom.reportsTableName}
       CONNECTIONS_TABLE: ${self:custom.connectionsTableName}
