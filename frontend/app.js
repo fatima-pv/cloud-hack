@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     displayUserInfo(currentUser);
+    
+    // ✅ Conectar WebSocket automáticamente para notificaciones en tiempo real
+    setTimeout(() => {
+        connectWebSocket();
+        logWsMessage('🔄 Conectando automáticamente para recibir notificaciones en tiempo real...', 'info');
+    }, 500);
 });
 
 // Get current user from localStorage
@@ -128,6 +134,82 @@ function logWsMessage(message, type = 'info') {
     wsMessages.scrollTop = wsMessages.scrollHeight;
 }
 
+// Mostrar notificación de cambio de estado
+function showEstadoChangeNotification(data) {
+    const { titulo, old_estado, new_estado, mensaje, incidente_id } = data;
+    
+    // Crear notificación toast
+    const notification = document.createElement('div');
+    notification.className = 'estado-notification';
+    notification.innerHTML = `
+        <div class="notification-icon">🔔</div>
+        <div class="notification-content">
+            <strong>¡Estado Actualizado!</strong>
+            <p>${mensaje}</p>
+            <small>Incidente: ${titulo}</small>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    // Agregar al body
+    document.body.appendChild(notification);
+    
+    // Auto-eliminar después de 8 segundos
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 300);
+    }, 8000);
+    
+    // También mostrar en el log de WebSocket
+    logWsMessage(`🔔 ${mensaje}`, 'success');
+    
+    // Intentar mostrar notificación del navegador
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Incidente Actualizado', {
+            body: mensaje,
+            icon: '🔔'
+        });
+    }
+}
+
+// Mostrar notificación de nueva asignación (para trabajador)
+function showAsignacionNotification(data) {
+    const { titulo, tipo, piso, urgencia, mensaje } = data;
+    
+    // Crear notificación toast
+    const notification = document.createElement('div');
+    notification.className = 'estado-notification asignacion-notification';
+    notification.innerHTML = `
+        <div class="notification-icon">📋</div>
+        <div class="notification-content">
+            <strong>¡Nueva Tarea Asignada!</strong>
+            <p>${mensaje}</p>
+            <small>Tipo: ${tipo || 'N/A'} | Piso: ${piso || 'N/A'} | Urgencia: ${urgencia || 'N/A'}</small>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    // Agregar al body
+    document.body.appendChild(notification);
+    
+    // Auto-eliminar después de 10 segundos (más tiempo para asignaciones)
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 300);
+    }, 10000);
+    
+    // También mostrar en el log de WebSocket
+    logWsMessage(`📋 ${mensaje}`, 'success');
+    
+    // Intentar mostrar notificación del navegador
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Nueva Tarea Asignada', {
+            body: mensaje,
+            icon: '📋'
+        });
+    }
+}
+
 // Update WebSocket status
 function updateWsStatus(connected) {
     wsConnected = connected;
@@ -136,7 +218,7 @@ function updateWsStatus(connected) {
     
     if (connected) {
         statusDot.classList.add('connected');
-        statusText.textContent = 'Connected';
+        statusText.textContent = '🔔 Notificaciones Activas';
         connectWsBtn.textContent = 'Disconnect WebSocket';
     } else {
         statusDot.classList.remove('connected');
@@ -152,14 +234,20 @@ function connectWebSocket() {
         return;
     }
 
+    // Obtener email del usuario actual para las notificaciones
+    const userEmail = currentUser ? currentUser.email : '';
     const wsUrl = getWsUrl();
-    logWsMessage(`Connecting to ${wsUrl}...`, 'info');
+    
+    // Agregar email como query parameter para recibir notificaciones personalizadas
+    const wsUrlWithEmail = userEmail ? `${wsUrl}?email=${encodeURIComponent(userEmail)}` : wsUrl;
+    
+    logWsMessage(`Connecting to ${wsUrlWithEmail}...`, 'info');
     
     try {
-        ws = new WebSocket(wsUrl);
+        ws = new WebSocket(wsUrlWithEmail);
         
         ws.onopen = () => {
-            logWsMessage('✅ WebSocket connected successfully!', 'success');
+            logWsMessage('✅ Conectado! Recibirás notificaciones en tiempo real', 'success');
             updateWsStatus(true);
         };
         
@@ -167,6 +255,21 @@ function connectWebSocket() {
             logWsMessage(`📨 Received: ${event.data}`, 'info');
             try {
                 const data = JSON.parse(event.data);
+                
+                // Manejar notificación de cambio de estado
+                if (data.action === 'estado_change') {
+                    showEstadoChangeNotification(data);
+                    // Actualizar lista después de 1 segundo
+                    setTimeout(() => loadIncidents(), 1000);
+                }
+                
+                // Manejar notificación de nueva asignación (trabajador)
+                if (data.action === 'nueva_asignacion') {
+                    showAsignacionNotification(data);
+                    // Actualizar lista después de 1 segundo
+                    setTimeout(() => loadIncidents(), 1000);
+                }
+                
                 logWsMessage(`Parsed data: ${JSON.stringify(data, null, 2)}`, 'success');
             } catch (e) {
                 // Not JSON, just display as is
@@ -174,13 +277,20 @@ function connectWebSocket() {
         };
         
         ws.onerror = (error) => {
-            logWsMessage(`❌ WebSocket error: ${error.message || 'Connection failed'}`, 'error');
+            logWsMessage(`❌ Error de conexión: ${error.message || 'Falló la conexión'}`, 'error');
             updateWsStatus(false);
         };
         
         ws.onclose = () => {
-            logWsMessage('🔌 WebSocket disconnected', 'info');
+            logWsMessage('🔌 WebSocket desconectado. Intentando reconectar...', 'info');
             updateWsStatus(false);
+            
+            // ✅ Reconectar automáticamente después de 3 segundos
+            setTimeout(() => {
+                if (currentUser) {
+                    connectWebSocket();
+                }
+            }, 3000);
         };
     } catch (error) {
         logWsMessage(`❌ Failed to connect: ${error.message}`, 'error');

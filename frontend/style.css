@@ -589,3 +589,125 @@ select:focus {
     color: #1976d2;
     font-size: 11px;
 }
+
+/* Toast Notifications */
+.estado-notification,
+.asignacion-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    max-width: 400px;
+    z-index: 10000;
+    animation: slideInRight 0.4s ease-out;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    border-left: 5px solid;
+}
+
+.estado-notification {
+    border-left-color: #4CAF50;
+}
+
+.asignacion-notification {
+    border-left-color: #FF9800;
+}
+
+.notification-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+    animation: pulse 1s infinite;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-content h3 {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.notification-content p {
+    margin: 4px 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.notification-content strong {
+    color: #333;
+    font-weight: 600;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+
+.notification-close:hover {
+    color: #333;
+}
+
+/* Animations */
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.notification-fadeout {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+/* Responsive Notifications */
+@media (max-width: 768px) {
+    .estado-notification,
+    .asignacion-notification {
+        max-width: calc(100vw - 40px);
+        right: 20px;
+        left: 20px;
+    }
+}

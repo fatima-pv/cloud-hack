@@ -82,6 +82,75 @@ def _broadcast_to_websockets(item):
         pass
 
 
+def _notify_user(user_email, notification_data):
+    """Send notification to specific user via WebSocket"""
+    try:
+        ws_api_id = os.environ.get('WS_API_ID')
+        ws_stage = os.environ.get('WS_STAGE', 'prod')
+        connections_table = os.environ.get('CONNECTIONS_TABLE', 'ConnectionsTable')
+        
+        if not ws_api_id or not user_email:
+            return
+        
+        endpoint = f"https://{ws_api_id}.execute-api.{os.environ.get('AWS_REGION', 'us-east-1')}.amazonaws.com/{ws_stage}"
+        apigw = boto3.client('apigatewaymanagementapi', endpoint_url=endpoint)
+        
+        con_table = dynamodb.Table(connections_table)
+        resp = con_table.scan()
+        conns = resp.get('Items', [])
+        
+        # Find connections for this specific user
+        for c in conns:
+            cid = c.get('connectionId')
+            conn_email = c.get('userEmail', '')
+            
+            if not cid or conn_email != user_email:
+                continue
+            
+            try:
+                apigw.post_to_connection(
+                    ConnectionId=cid,
+                    Data=json.dumps(notification_data).encode('utf-8')
+                )
+            except apigw.exceptions.GoneException:
+                con_table.delete_item(Key={'connectionId': cid})
+            except Exception as e:
+                print(f"Error sending notification: {str(e)}")
+                pass
+    except Exception as e:
+        print(f"Error in _notify_user: {str(e)}")
+        pass
+
+
+def _notify_estado_change(user_email, incidente, old_estado, new_estado):
+    """Notify user about estado change"""
+    notification = {
+        'action': 'estado_change',
+        'incidente_id': incidente.get('id'),
+        'titulo': incidente.get('titulo'),
+        'old_estado': old_estado,
+        'new_estado': new_estado,
+        'timestamp': datetime.datetime.utcnow().isoformat(),
+        'mensaje': f"Tu incidente '{incidente.get('titulo')}' cambió de estado: {old_estado} → {new_estado}"
+    }
+    _notify_user(user_email, notification)
+
+
+def _notify_asignacion(trabajador_email, incidente):
+    """Notify worker about new assignment"""
+    notification = {
+        'action': 'nueva_asignacion',
+        'incidente_id': incidente.get('id'),
+        'titulo': incidente.get('titulo'),
+        'tipo': incidente.get('tipo'),
+        'piso': incidente.get('piso'),
+        'urgencia': incidente.get('Nivel_Riesgo'),
+        'timestamp': datetime.datetime.utcnow().isoformat(),
+        'mensaje': f"Se te ha asignado un nuevo incidente: {incidente.get('titulo')}"
+    }
+    _notify_user(trabajador_email, notification)
+
+
 def lambda_handler(event, context):
     method = event.get('httpMethod')
     path = event.get('path', '').rstrip('/')
@@ -206,7 +275,11 @@ def lambda_handler(event, context):
         if 'Nivel_Riesgo' in data:
             item['Nivel_Riesgo'] = data['Nivel_Riesgo']
         if 'estado' in data:
-            item['estado'] = data['estado']
+            old_estado = item.get('estado')
+            new_estado = data['estado']
+            item['estado'] = new_estado
+            if old_estado != new_estado:
+                _notify_estado_change(item.get('creado_por'), item, old_estado, new_estado)
         
         item['ultima_modificacion'] = now
         item['modificado_por'] = current_user.get('email')
@@ -263,6 +336,8 @@ def lambda_handler(event, context):
         item['estado'] = 'asignado'
         
         table.put_item(Item=item)
+        
+        _notify_asignacion(trabajador_email, item)
         
         return _resp(200, item)
 
