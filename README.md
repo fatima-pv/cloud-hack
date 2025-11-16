@@ -113,6 +113,12 @@ sls package --stage prod --region us-east-1
 # Open this file and search for IAM::Role resources; if any exist, Serverless will try to create them.
 ```
 
+Windows (cmd.exe) quick check for IAM::Role in the generated template:
+
+```cmd
+findstr /I /C:"AWS::IAM::Role" .serverless\cloudformation-template-update-stack.json || echo No IAM Role resources found
+```
+
 ```
 
 

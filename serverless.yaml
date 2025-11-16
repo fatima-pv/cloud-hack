@@ -33,9 +33,11 @@ package:
 custom:
   pythonRequirements:
     dockerizePip: true
+  labRoleArn: ${self:provider.role}
 
 functions:
   app:
+    role: ${self:custom.labRoleArn}
     handler: src/app.lambda_handler
     timeout: 10
     events:
@@ -49,12 +51,14 @@ functions:
           cors: true
 
   connect:
+    role: ${self:custom.labRoleArn}
     handler: src/connect.lambda_handler
     timeout: 5
     events:
       - websocket: $connect
 
   disconnect:
+    role: ${self:custom.labRoleArn}
     handler: src/disconnect.lambda_handler
     timeout: 5
     events:
