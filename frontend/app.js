@@ -309,6 +309,15 @@ incidentForm.addEventListener('submit', async (e) => {
     }
 });
 
+// Variables globales para filtros
+let allIncidents = [];
+let currentFilters = {
+    urgencia: '',
+    tipo: '',
+    estado: ''
+};
+let currentTab = 'activos';
+
 // Load incidents
 async function loadIncidents() {
     if (!currentUser) {
@@ -316,7 +325,10 @@ async function loadIncidents() {
         return;
     }
     
-    incidentsList.innerHTML = '<p class="loading">Loading incidents...</p>';
+    const activeTab = document.querySelector('.tab-content.active');
+    if (activeTab) {
+        activeTab.querySelector('.incidents-list').innerHTML = '<p class="loading">Cargando incidentes...</p>';
+    }
     
     try {
         const response = await fetch(getApiUrl(), {
@@ -335,43 +347,185 @@ async function loadIncidents() {
         const data = await response.json();
         
         // Handle different response formats
-        let incidents = [];
+        allIncidents = [];
         if (Array.isArray(data)) {
-            incidents = data;
+            allIncidents = data;
         } else if (data.incidents && Array.isArray(data.incidents)) {
-            incidents = data.incidents;
+            allIncidents = data.incidents;
         } else if (data.Items && Array.isArray(data.Items)) {
-            incidents = data.Items;
-        }
-        
-        if (incidents.length === 0) {
-            let message = 'No incidents found.';
-            if (currentUser.tipo === 'estudiante') {
-                message = 'No has creado ningún incidente aún. ¡Crea uno para comenzar!';
-            } else if (currentUser.tipo === 'trabajador') {
-                message = 'No tienes incidentes asignados.';
-            }
-            incidentsList.innerHTML = `<p class="info">${message}</p>`;
-            return;
+            allIncidents = data.Items;
         }
         
         // Sort by timestamp (newest first)
-        incidents.sort((a, b) => {
+        allIncidents.sort((a, b) => {
             const timeA = new Date(a.Fecha_creacion || a.timestamp || 0);
             const timeB = new Date(b.Fecha_creacion || b.timestamp || 0);
             return timeB - timeA;
         });
         
-        incidentsList.innerHTML = incidents.map(incident => renderIncidentCard(incident)).join('');
+        // Poblar filtros dinámicos (tipos únicos)
+        populateTipoFilter();
         
-        // Add event listeners for admin actions
-        if (currentUser.tipo === 'admin') {
-            attachAdminEventListeners();
-        }
+        // Renderizar incidentes según filtros y pestaña
+        renderFilteredIncidents();
+        
     } catch (error) {
-        incidentsList.innerHTML = `<p class="error" style="color: #721c24; text-align: center; padding: 20px;">❌ Error loading incidents: ${error.message}<br><small>Check browser console for details</small></p>`;
+        const activeList = document.querySelector('.tab-content.active .incidents-list');
+        if (activeList) {
+            activeList.innerHTML = `<p class="error" style="color: #721c24; text-align: center; padding: 20px;">❌ Error: ${error.message}</p>`;
+        }
         console.error('Full error:', error);
     }
+}
+
+// Poblar filtro de tipo con opciones únicas
+function populateTipoFilter() {
+    const filterTipo = document.getElementById('filterTipo');
+    if (!filterTipo) return;
+    
+    const tipos = [...new Set(allIncidents.map(inc => inc.tipo).filter(t => t))];
+    
+    filterTipo.innerHTML = '<option value="">Todos</option>';
+    tipos.forEach(tipo => {
+        const option = document.createElement('option');
+        option.value = tipo;
+        option.textContent = tipo;
+        filterTipo.appendChild(option);
+    });
+}
+
+// Aplicar filtros y renderizar
+function renderFilteredIncidents() {
+    // Separar activos y completados
+    const activos = allIncidents.filter(inc => {
+        const estado = (inc.estado || '').toLowerCase();
+        return estado !== 'resuelto' && estado !== 'completado';
+    });
+    
+    const completados = allIncidents.filter(inc => {
+        const estado = (inc.estado || '').toLowerCase();
+        return estado === 'resuelto' || estado === 'completado';
+    });
+    
+    // Aplicar filtros a activos
+    let filteredActivos = applyFilters(activos);
+    
+    // Renderizar activos
+    renderActivosTab(filteredActivos);
+    
+    // Renderizar completados agrupados por fecha
+    renderCompletadosTab(completados);
+    
+    // Actualizar contadores
+    updateTabCounts(filteredActivos.length, completados.length);
+}
+
+// Aplicar filtros
+function applyFilters(incidents) {
+    return incidents.filter(inc => {
+        // Filtro por urgencia
+        if (currentFilters.urgencia && inc.Nivel_Riesgo !== currentFilters.urgencia) {
+            return false;
+        }
+        
+        // Filtro por tipo
+        if (currentFilters.tipo && inc.tipo !== currentFilters.tipo) {
+            return false;
+        }
+        
+        // Filtro por estado
+        if (currentFilters.estado && (inc.estado || '').toLowerCase() !== currentFilters.estado.toLowerCase()) {
+            return false;
+        }
+        
+        return true;
+    });
+}
+
+// Renderizar tab de activos
+function renderActivosTab(incidents) {
+    const activosList = document.getElementById('incidentsList');
+    
+    if (incidents.length === 0) {
+        let message = 'No hay incidentes activos.';
+        if (currentFilters.urgencia || currentFilters.tipo || currentFilters.estado) {
+            message = 'No hay incidentes que coincidan con los filtros seleccionados.';
+        } else if (currentUser.tipo === 'estudiante') {
+            message = 'No has creado ningún incidente activo. ¡Crea uno para comenzar!';
+        } else if (currentUser.tipo === 'trabajador') {
+            message = 'No tienes incidentes activos asignados.';
+        }
+        activosList.innerHTML = `<p class="info">${message}</p>`;
+        return;
+    }
+    
+    activosList.innerHTML = incidents.map(incident => renderIncidentCard(incident)).join('');
+    
+    // Add event listeners for admin actions
+    if (currentUser.tipo === 'admin') {
+        attachAdminEventListeners();
+    }
+}
+
+// Renderizar tab de completados agrupados por fecha
+function renderCompletadosTab(incidents) {
+    const completadosList = document.getElementById('completadosList');
+    
+    if (incidents.length === 0) {
+        completadosList.innerHTML = '<p class="info">No hay incidentes completados.</p>';
+        return;
+    }
+    
+    // Agrupar por fecha de completado
+    const groupedByDate = {};
+    
+    incidents.forEach(inc => {
+        const completedDate = inc.fecha_completado || inc.Fecha_creacion;
+        const dateKey = completedDate ? new Date(completedDate).toLocaleDateString('es-ES') : 'Sin fecha';
+        
+        if (!groupedByDate[dateKey]) {
+            groupedByDate[dateKey] = [];
+        }
+        groupedByDate[dateKey].push(inc);
+    });
+    
+    // Ordenar fechas (más reciente primero)
+    const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+        if (a === 'Sin fecha') return 1;
+        if (b === 'Sin fecha') return -1;
+        return new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-'));
+    });
+    
+    // Renderizar grupos
+    let html = '';
+    sortedDates.forEach(date => {
+        const incidentsOfDay = groupedByDate[date];
+        html += `
+            <div class="completados-group">
+                <div class="completados-group-header">
+                    <span>📅 ${date}</span>
+                    <span class="completados-group-count">${incidentsOfDay.length}</span>
+                </div>
+                ${incidentsOfDay.map(inc => renderIncidentCard(inc)).join('')}
+            </div>
+        `;
+    });
+    
+    completadosList.innerHTML = html;
+    
+    // Add event listeners for admin actions
+    if (currentUser.tipo === 'admin') {
+        attachAdminEventListeners();
+    }
+}
+
+// Actualizar contadores de las pestañas
+function updateTabCounts(activosCount, completadosCount) {
+    const activosCountEl = document.getElementById('activosCount');
+    const completadosCountEl = document.getElementById('completadosCount');
+    
+    if (activosCountEl) activosCountEl.textContent = activosCount;
+    if (completadosCountEl) completadosCountEl.textContent = completadosCount;
 }
 
 // Helper functions
@@ -782,6 +936,67 @@ refreshBtn.addEventListener('click', loadIncidents);
 connectWsBtn.addEventListener('click', connectWebSocket);
 clearLogsBtn.addEventListener('click', () => {
     wsMessages.innerHTML = '<p class="info">Logs cleared...</p>';
+});
+
+// Event listeners para filtros
+const filterUrgencia = document.getElementById('filterUrgencia');
+const filterTipo = document.getElementById('filterTipo');
+const filterEstado = document.getElementById('filterEstado');
+const clearFiltersBtn = document.getElementById('clearFilters');
+
+if (filterUrgencia) {
+    filterUrgencia.addEventListener('change', (e) => {
+        currentFilters.urgencia = e.target.value;
+        renderFilteredIncidents();
+    });
+}
+
+if (filterTipo) {
+    filterTipo.addEventListener('change', (e) => {
+        currentFilters.tipo = e.target.value;
+        renderFilteredIncidents();
+    });
+}
+
+if (filterEstado) {
+    filterEstado.addEventListener('change', (e) => {
+        currentFilters.estado = e.target.value;
+        renderFilteredIncidents();
+    });
+}
+
+if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', () => {
+        currentFilters = { urgencia: '', tipo: '', estado: '' };
+        if (filterUrgencia) filterUrgencia.value = '';
+        if (filterTipo) filterTipo.value = '';
+        if (filterEstado) filterEstado.value = '';
+        renderFilteredIncidents();
+    });
+}
+
+// Event listeners para pestañas
+const tabBtns = document.querySelectorAll('.tab-btn');
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const tabName = e.currentTarget.dataset.tab;
+        
+        // Activar pestaña
+        tabBtns.forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        
+        // Mostrar contenido correspondiente
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        const targetTab = document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+        if (targetTab) {
+            targetTab.classList.add('active');
+        }
+        
+        currentTab = tabName;
+    });
 });
 
 // Initialize

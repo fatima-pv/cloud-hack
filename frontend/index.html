@@ -74,13 +74,74 @@
             </div>
 
             <!-- Right Panel - View Incidents -->
-            <div class="panel">
+            <div class="panel incidents-panel">
                 <div class="panel-header">
-                    <h2>📋 All Incidents</h2>
-                    <button id="refreshBtn" class="btn btn-secondary">🔄 Refresh</button>
+                    <h2>📋 <span id="panelTitle">Todos los Incidentes</span></h2>
+                    <button id="refreshBtn" class="btn btn-secondary">🔄 Actualizar</button>
                 </div>
-                <div id="incidentsList" class="incidents-list">
-                    <p class="loading">Click refresh to load incidents...</p>
+
+                <!-- Filtros -->
+                <div class="filters-container" id="filtersContainer">
+                    <h3>🔍 Filtros</h3>
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label for="filterUrgencia">Urgencia:</label>
+                            <select id="filterUrgencia" class="filter-select">
+                                <option value="">Todas</option>
+                                <option value="bajo">🟢 Bajo</option>
+                                <option value="medio">🟡 Medio</option>
+                                <option value="alto">🟠 Alto</option>
+                                <option value="crítico">🔴 Crítico</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filterTipo">Tipo:</label>
+                            <select id="filterTipo" class="filter-select">
+                                <option value="">Todos</option>
+                                <!-- Se llenarán dinámicamente -->
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filterEstado">Estado:</label>
+                            <select id="filterEstado" class="filter-select">
+                                <option value="">Todos</option>
+                                <option value="pendiente">Pendiente</option>
+                                <option value="asignado">Asignado</option>
+                                <option value="en atención">En Atención</option>
+                                <option value="en progreso">En Progreso</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <button id="clearFilters" class="btn btn-secondary">🗑️ Limpiar Filtros</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pestañas -->
+                <div class="tabs-container">
+                    <button class="tab-btn active" data-tab="activos">
+                        📌 Activos <span id="activosCount" class="badge">0</span>
+                    </button>
+                    <button class="tab-btn" data-tab="completados">
+                        ✅ Completados <span id="completadosCount" class="badge">0</span>
+                    </button>
+                </div>
+
+                <!-- Tab Content - Activos -->
+                <div id="tabActivos" class="tab-content active">
+                    <div id="incidentsList" class="incidents-list">
+                        <p class="loading">Cargando incidentes...</p>
+                    </div>
+                </div>
+
+                <!-- Tab Content - Completados -->
+                <div id="tabCompletados" class="tab-content">
+                    <div id="completadosList" class="incidents-list">
+                        <p class="info">No hay incidentes completados</p>
+                    </div>
                 </div>
             </div>
         </div>
