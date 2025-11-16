@@ -509,8 +509,9 @@ async function assignIncident(incidentId) {
     const workers = await getWorkers();
     const allIncidents = await getAllIncidentsForAdmin();
     
-    console.log('Workers loaded:', workers.length);
-    console.log('All incidents:', allIncidents.length);
+    console.log('👥 Workers loaded:', workers.length);
+    console.log('👥 Workers raw data:', workers);
+    console.log('📋 All incidents:', allIncidents.length);
     
     if (workers.length === 0) {
         alert('No hay trabajadores registrados en el sistema');
@@ -519,7 +520,11 @@ async function assignIncident(incidentId) {
     
     // Get unique especialidades (including workers without especialidad)
     const especialidades = [...new Set(workers.map(w => w.especialidad).filter(e => e))];
-    console.log('Unique especialidades:', especialidades);
+    console.log('🏷️ Unique especialidades found:', especialidades);
+    console.log('🏷️ Workers with especialidad:', workers.filter(w => w.especialidad).map(w => ({
+        nombre: w.nombre,
+        especialidad: w.especialidad
+    })));
     
     // Calculate worker availability
     const workersWithStatus = workers.map(worker => {
@@ -594,12 +599,24 @@ async function assignIncident(incidentId) {
     
     // Function to populate workers dropdown based on filter
     function populateWorkers(filterEspecialidad = '') {
+        console.log('🔍 populateWorkers called with filter:', filterEspecialidad);
+        console.log('📊 Total workers with status:', workersWithStatus.length);
+        console.log('👥 Workers data:', workersWithStatus.map(w => ({
+            nombre: w.nombre,
+            especialidad: w.especialidad,
+            email: w.email
+        })));
+        
         const filteredWorkers = filterEspecialidad 
-            ? workersWithStatus.filter(w => w.especialidad === filterEspecialidad)
+            ? workersWithStatus.filter(w => {
+                const matches = w.especialidad === filterEspecialidad;
+                console.log(`  - ${w.nombre}: especialidad="${w.especialidad}" === "${filterEspecialidad}" ? ${matches}`);
+                return matches;
+            })
             : workersWithStatus;
         
-        console.log('Populating workers - Filter:', filterEspecialidad);
-        console.log('Filtered workers count:', filteredWorkers.length);
+        console.log('✅ Filtered workers count:', filteredWorkers.length);
+        console.log('✅ Filtered workers:', filteredWorkers.map(w => w.nombre));
         
         workerSelect.innerHTML = '<option value="">-- Selecciona un trabajador --</option>';
         
@@ -611,6 +628,7 @@ async function assignIncident(incidentId) {
                 : 'No hay trabajadores disponibles';
             option.disabled = true;
             workerSelect.appendChild(option);
+            console.warn('⚠️ No workers found for filter:', filterEspecialidad);
             return;
         }
         

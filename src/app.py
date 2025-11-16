@@ -114,7 +114,7 @@ def lambda_handler(event, context):
         
         # Validar tipo de trabajador requerido
         tipo_trabajador_requerido = data.get('tipo_trabajador_requerido', '')
-        tipos_trabajador_validos = ['TI', 'Limpieza', 'Seguridad', 'Electricista']
+        tipos_trabajador_validos = ['TI', 'Limpieza', 'Servicio de Limpieza', 'Seguridad', 'Electricista']
         if tipo_trabajador_requerido not in tipos_trabajador_validos:
             tipo_trabajador_requerido = ''
         
