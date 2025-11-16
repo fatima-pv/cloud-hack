@@ -70,7 +70,12 @@ def register_handler(event, context):
     """
     Register a new user
     POST /auth/register
-    Body: { "email": "user@domain.com", "password": "pass123", "nombre": "John Doe" }
+    Body: { 
+        "email": "user@domain.com", 
+        "password": "pass123", 
+        "nombre": "John Doe",
+        "especialidad": "TI" (opcional, solo para trabajadores)
+    }
     """
     if event.get('httpMethod') == 'OPTIONS':
         return _resp(200, {'message': 'OK'})
@@ -79,6 +84,7 @@ def register_handler(event, context):
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
     nombre = data.get('nombre', '').strip()
+    especialidad = data.get('especialidad', '').strip()
     
     # Validation
     if not email or not password or not nombre:
@@ -96,6 +102,21 @@ def register_handler(event, context):
             'error': 'La contraseña debe tener al menos 6 caracteres'
         })
     
+    # Determine user type based on email domain
+    user_type = _determine_user_type(email)
+    
+    # Validar especialidad para trabajadores
+    especialidades_validas = ['TI', 'Servicio de Limpieza', 'Seguridad', 'Electricista']
+    if user_type == 'trabajador':
+        if not especialidad:
+            return _resp(400, {
+                'error': 'Especialidad es requerida para trabajadores'
+            })
+        if especialidad not in especialidades_validas:
+            return _resp(400, {
+                'error': f'Especialidad inválida. Debe ser una de: {", ".join(especialidades_validas)}'
+            })
+    
     # Check if user already exists
     try:
         response = users_table.get_item(Key={'email': email})
@@ -107,9 +128,6 @@ def register_handler(event, context):
         return _resp(500, {
             'error': f'Error verificando usuario: {str(e)}'
         })
-    
-    # Determine user type based on email domain
-    user_type = _determine_user_type(email)
     
     # Create user
     user_id = str(uuid.uuid4())
@@ -124,6 +142,10 @@ def register_handler(event, context):
         'created_at': now,
         'updated_at': now
     }
+    
+    # Añadir especialidad solo para trabajadores
+    if user_type == 'trabajador':
+        user['especialidad'] = especialidad
     
     try:
         users_table.put_item(Item=user)
@@ -140,6 +162,10 @@ def register_handler(event, context):
         'tipo': user_type,
         'created_at': now
     }
+    
+    # Incluir especialidad en respuesta para trabajadores
+    if user_type == 'trabajador':
+        user_response['especialidad'] = especialidad
     
     return _resp(201, {
         'message': 'Usuario registrado exitosamente',
@@ -191,6 +217,10 @@ def login_handler(event, context):
             'tipo': user.get('tipo'),
             'created_at': user.get('created_at')
         }
+        
+        # Incluir especialidad si es trabajador
+        if user.get('tipo') == 'trabajador' and user.get('especialidad'):
+            user_response['especialidad'] = user.get('especialidad')
         
         return _resp(200, {
             'message': 'Login exitoso',

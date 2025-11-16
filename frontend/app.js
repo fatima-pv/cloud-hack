@@ -36,7 +36,8 @@ function displayUserInfo(user) {
     }
     
     if (userType) {
-        userType.textContent = user.tipo.toUpperCase();
+        const especialidadText = user.especialidad ? ` - ${user.especialidad}` : '';
+        userType.textContent = user.tipo.toUpperCase() + especialidadText;
         userType.className = `user-badge badge-${user.tipo}`;
     }
     
@@ -369,7 +370,7 @@ function renderIncidentCard(incident) {
             ${incident.piso ? `<p><strong>Piso:</strong> ${escapeHtml(incident.piso)}</p>` : ''}
             ${incident.lugar_especifico ? `<p><strong>Lugar:</strong> ${escapeHtml(incident.lugar_especifico)}</p>` : ''}
             ${incident.creado_por_nombre ? `<p><strong>Creado por:</strong> ${escapeHtml(incident.creado_por_nombre)}</p>` : ''}
-            ${incident.asignado_a_nombre ? `<p><strong>Asignado a:</strong> ${escapeHtml(incident.asignado_a_nombre)}</p>` : ''}
+            ${incident.asignado_a_nombre ? `<p><strong>Asignado a:</strong> ${escapeHtml(incident.asignado_a_nombre)}${incident.asignado_a_especialidad ? ` - ${escapeHtml(incident.asignado_a_especialidad)}` : ''}</p>` : ''}
             <p><strong>Estado:</strong> <span class="badge-estado estado-${incident.estado}">${escapeHtml(incident.estado || 'pendiente')}</span></p>
             <p><strong>Creado:</strong> ${formatDate(incident.Fecha_creacion)}</p>
             ${incident.Nivel_Riesgo ? `<span class="severity ${getSeverityClass(incident.Nivel_Riesgo)}">${getSeverityIcon(incident.Nivel_Riesgo)} ${incident.Nivel_Riesgo}</span>` : ''}
@@ -486,7 +487,10 @@ async function assignIncident(incidentId) {
                     <label>Seleccionar Trabajador:</label>
                     <select id="worker-select" required>
                         <option value="">-- Selecciona un trabajador --</option>
-                        ${workers.map(w => `<option value="${w.email}">${w.nombre} (${w.email})</option>`).join('')}
+                        ${workers.map(w => {
+                            const especialidadText = w.especialidad ? ` - ${w.especialidad}` : '';
+                            return `<option value="${w.email}">${w.nombre} (${w.email})${especialidadText}</option>`;
+                        }).join('')}
                     </select>
                 </div>
                 <div class="modal-actions">

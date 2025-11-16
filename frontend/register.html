@@ -62,6 +62,23 @@
                     >
                 </div>
                 
+                <div class="form-group" id="especialidadGroup" style="display: none;">
+                    <label for="especialidad">Especialidad (Personal) <span style="color: red;">*</span></label>
+                    <select 
+                        id="especialidad" 
+                        name="especialidad"
+                    >
+                        <option value="">-- Selecciona tu especialidad --</option>
+                        <option value="TI">TI (Tecnologías de la Información)</option>
+                        <option value="Servicio de Limpieza">Servicio de Limpieza</option>
+                        <option value="Seguridad">Seguridad</option>
+                        <option value="Electricista">Electricista</option>
+                    </select>
+                    <small class="help-text">
+                        Requerido para personal de trabajo
+                    </small>
+                </div>
+                
                 <button type="submit" class="btn btn-primary">
                     Crear Cuenta
                 </button>
@@ -78,7 +95,14 @@
                 <ul>
                     <li><strong>Estudiante:</strong> @utec.edu.pe</li>
                     <li><strong>Admin:</strong> @admin.utec.edu.pe</li>
-                    <li><strong>Trabajador:</strong> otros dominios</li>
+                    <li><strong>Personal:</strong> otros dominios (requiere seleccionar especialidad)</li>
+                </ul>
+                <h3 style="margin-top: 15px;">Especialidades de Personal</h3>
+                <ul>
+                    <li>TI - Tecnologías de la Información</li>
+                    <li>Servicio de Limpieza</li>
+                    <li>Seguridad</li>
+                    <li>Electricista</li>
                 </ul>
             </div>
         </div>

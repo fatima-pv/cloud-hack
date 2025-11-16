@@ -71,6 +71,7 @@ if (registerForm) {
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
+        const especialidad = document.getElementById('especialidad').value;
         
         // Validate passwords match
         if (password !== confirmPassword) {
@@ -80,7 +81,26 @@ if (registerForm) {
         
         // Show preview of user type
         const userType = getUserTypeFromEmail(email);
+        
+        // Validate especialidad for trabajador
+        if (userType === 'trabajador' && !especialidad) {
+            showResult('registerResult', 'Debes seleccionar una especialidad para el personal', 'error');
+            return;
+        }
+        
         console.log(`Registering as: ${userType}`);
+        
+        // Build request body
+        const requestBody = {
+            nombre,
+            email,
+            password
+        };
+        
+        // Add especialidad only for trabajadores
+        if (userType === 'trabajador' && especialidad) {
+            requestBody.especialidad = especialidad;
+        }
         
         try {
             const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -88,18 +108,15 @@ if (registerForm) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    nombre,
-                    email,
-                    password
-                })
+                body: JSON.stringify(requestBody)
             });
             
             const data = await response.json();
             
             if (response.ok) {
+                const especialidadText = data.user.especialidad ? ` - ${data.user.especialidad}` : '';
                 showResult('registerResult', 
-                    `¡Registro exitoso! Tipo de usuario: ${data.user.tipo}. Redirigiendo...`, 
+                    `¡Registro exitoso! Tipo de usuario: ${data.user.tipo}${especialidadText}. Redirigiendo...`, 
                     'success');
                 
                 // Save user and redirect to login
@@ -119,8 +136,10 @@ if (registerForm) {
         }
     });
     
-    // Show user type preview on email input
+    // Show user type preview and especialidad field on email input
     const emailInput = document.getElementById('email');
+    const especialidadGroup = document.getElementById('especialidadGroup');
+    
     if (emailInput) {
         emailInput.addEventListener('input', (e) => {
             const email = e.target.value.trim();
@@ -128,9 +147,22 @@ if (registerForm) {
                 const userType = getUserTypeFromEmail(email);
                 const helpText = emailInput.nextElementSibling;
                 if (helpText) {
-                    helpText.textContent = `Tu tipo de usuario será: ${userType}`;
+                    if (userType === 'trabajador') {
+                        helpText.textContent = `Tu tipo de usuario será: personal (debes seleccionar una especialidad)`;
+                    } else {
+                        helpText.textContent = `Tu tipo de usuario será: ${userType}`;
+                    }
                     helpText.style.color = '#4CAF50';
                     helpText.style.fontWeight = 'bold';
+                }
+                
+                // Show/hide especialidad field based on user type
+                if (especialidadGroup) {
+                    if (userType === 'trabajador') {
+                        especialidadGroup.style.display = 'block';
+                    } else {
+                        especialidadGroup.style.display = 'none';
+                    }
                 }
             }
         });
@@ -161,8 +193,9 @@ if (loginForm) {
             const data = await response.json();
             
             if (response.ok) {
+                const especialidadText = data.user.especialidad ? ` - ${data.user.especialidad}` : '';
                 showResult('loginResult', 
-                    `¡Bienvenido! Tipo de usuario: ${data.user.tipo}`, 
+                    `¡Bienvenido! Tipo de usuario: ${data.user.tipo}${especialidadText}`, 
                     'success');
                 
                 // Save user data

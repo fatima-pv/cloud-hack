@@ -122,6 +122,7 @@ def lambda_handler(event, context):
             'creado_por_nombre': current_user.get('nombre'),
             'asignado_a': None,
             'asignado_a_nombre': None,
+            'asignado_a_especialidad': None,
             'asignado_por': None,
             'fecha_asignacion': None
         }
@@ -243,6 +244,7 @@ def lambda_handler(event, context):
         now = datetime.datetime.utcnow().isoformat()
         item['asignado_a'] = trabajador_email
         item['asignado_a_nombre'] = trabajador.get('nombre')
+        item['asignado_a_especialidad'] = trabajador.get('especialidad')
         item['asignado_por'] = current_user.get('email')
         item['fecha_asignacion'] = now
         item['estado'] = 'asignado'
