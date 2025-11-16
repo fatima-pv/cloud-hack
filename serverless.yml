@@ -1,0 +1,84 @@
+service: hackaton_cloud_front
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  environment:
+    TABLE_NAME: ReportsTable
+    CONNECTIONS_TABLE: ConnectionsTable
+    WS_STAGE: prod
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:Scan
+            - dynamodb:DeleteItem
+            - dynamodb:UpdateItem
+          Resource:
+            - arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/ReportsTable
+            - arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/ConnectionsTable
+        - Effect: Allow
+          Action:
+            - execute-api:ManageConnections
+          Resource:
+            Fn::Sub: "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebsocketsApi}/*/*"
+
+functions:
+  reports:
+    handler: src/app.lambda_handler
+    events:
+      - http:
+          path: incidentes
+          method: post
+      - http:
+          path: incidentes
+          method: get
+
+  connect:
+    handler: src/connect.lambda_handler
+    events:
+      - websocket: $connect
+
+  disconnect:
+    handler: src/disconnect.lambda_handler
+    events:
+      - websocket: $disconnect
+
+resources:
+  Resources:
+    ReportsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ReportsTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    ConnectionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ConnectionsTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+
+  Outputs:
+    WebsocketsApi:
+      Description: WebSocket API Id
+      Value:
+        Ref: WebsocketsApi
+      Export:
+        Name: ${self:service}-${self:provider.stage}-WebsocketsApi
