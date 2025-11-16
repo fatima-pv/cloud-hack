@@ -1,68 +1,60 @@
 service: cloud-hack
 
-# Serverless Dashboard / org settings
-org: valentinoc
-app: cloud-hack
+frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: python3.10
+  runtime: python3.9
   region: us-east-1
   stage: dev
-  # Use the provided AWS Academy Lab role to deploy and run functions
-  role: arn:aws:iam::175670145706:role/LabRole
-  environment:
-    TABLE_NAME: ReportsTable
-    CONNECTIONS_TABLE: ConnectionsTable
-    WS_STAGE: ${self:provider.stage}
-
-  # NOTE: avoid creating new IAM roles on deploy. If the LabRole used below
-  # does not have the required permissions (dynamodb & execute-api:ManageConnections),
-  # ask the admins to attach appropriate policies to it or provide a role with the
-  # IAM privileges needed. Removing inline `iam` statements prevents CloudFormation
-  # from trying to create roles which requires the deploying principal to have
-  # iam:CreateRole and tag permissions.
-
-plugins:
-  - serverless-python-requirements
-
-package:
-  exclude:
-    - tests/**
+  profile: default
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:Scan
+            - dynamodb:DeleteItem
+            - dynamodb:UpdateItem
+          Resource:
+            - Fn::GetAtt: [ReportsTable, Arn]
+            - Fn::GetAtt: [ConnectionsTable, Arn]
+        - Effect: Allow
+          Action:
+            - execute-api:ManageConnections
+          Resource:
+            - arn:aws:execute-api:*:*:*/@connections/*
 
 custom:
-  pythonRequirements:
-    dockerizePip: true
-  labRoleArn: ${self:provider.role}
+  awsAcademy:
+    org: valentinoc
+    userId: 175670145706
+    role: LabRole
 
 functions:
   app:
-    role: ${self:custom.labRoleArn}
     handler: src/app.lambda_handler
-    timeout: 10
     events:
       - http:
           path: incidentes
           method: post
-          cors: true
       - http:
           path: incidentes
           method: get
-          cors: true
 
   connect:
-    role: ${self:custom.labRoleArn}
     handler: src/connect.lambda_handler
-    timeout: 5
     events:
-      - websocket: $connect
+      - websocket:
+          route: $connect
 
   disconnect:
-    role: ${self:custom.labRoleArn}
     handler: src/disconnect.lambda_handler
-    timeout: 5
     events:
-      - websocket: $disconnect
+      - websocket:
+          route: $disconnect
 
 resources:
   Resources:
@@ -90,12 +82,10 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
 
-  Outputs:
-    RestApiId:
-      Value: !Ref ApiGatewayRestApi
-      Export:
-        Name: ${self:service}-${self:provider.stage}-RestApiId
-    WebsocketsApiId:
-      Value: !Ref WebsocketsApi
-      Export:
-        Name: ${self:service}-${self:provider.stage}-WebsocketsApiId
+package:
+  include:
+    - src/**
+
+plugins:
+  - serverless-python-requirements</content>
+<parameter name="filePath">c:\Users\vvalen\Desktop\6hd\Utec\2025-2\cloud\cloud-hack\serverless.yaml
