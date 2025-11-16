@@ -78,6 +78,11 @@ def lambda_handler(event, context):
                 'tipo': user.get('tipo'),
                 'created_at': user.get('created_at')
             }
+            
+            # Incluir especialidad para trabajadores
+            if user.get('tipo') == 'trabajador' and 'especialidad' in user:
+                safe_user['especialidad'] = user.get('especialidad')
+            
             safe_users.append(safe_user)
         
         return _resp(200, safe_users)

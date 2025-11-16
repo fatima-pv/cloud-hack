@@ -217,6 +217,8 @@ def lambda_handler(event, context):
 
     # ASSIGN: PUT /incidentes/{id}/asignar (Solo ADMIN)
     if path.endswith('/asignar') and method == 'PUT':
+        print(f"[ASSIGN] Path: {path}, Method: {method}")
+        
         if not current_user:
             return _resp(401, {'error': 'No autenticado'})
         
@@ -225,8 +227,12 @@ def lambda_handler(event, context):
             return _resp(403, {'error': 'Solo administradores pueden asignar incidentes'})
         
         incident_id = path.split('/')[-2]
+        print(f"[ASSIGN] Extracted incident_id: {incident_id}")
+        
         data = _parse_body(event)
         trabajador_email = data.get('trabajador_email')
+        
+        print(f"[ASSIGN] Trabajador email: {trabajador_email}")
         
         if not trabajador_email:
             return _resp(400, {'error': 'trabajador_email es requerido'})
