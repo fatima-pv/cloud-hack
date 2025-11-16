@@ -16,7 +16,7 @@
 // ========================================
 
 // 🔧 CONFIGURA ESTA URL DESPUÉS DEL DEPLOYMENT
-const API_BASE_URL = 'https://YOUR_API_GATEWAY_URL/dev';
+const API_BASE_URL = 'https://pj9trlx4uf.execute-api.us-east-1.amazonaws.com/dev';
 
 // Ejemplos de URLs correctas:
 // const API_BASE_URL = 'https://abc123xyz.execute-api.us-east-1.amazonaws.com/dev';

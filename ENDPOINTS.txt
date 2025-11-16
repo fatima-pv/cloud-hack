@@ -1,0 +1,151 @@
+# 🚀 ENDPOINTS DESPLEGADOS - NOTIFICACIONES DE ESTADO
+
+Fecha: 16 de noviembre de 2024
+Stage: dev
+Region: us-east-1
+
+## 📡 REST API
+BASE_URL: https://pj9trlx4uf.execute-api.us-east-1.amazonaws.com/dev
+
+### Autenticación
+POST   /auth/register        - Registrar nuevo usuario
+POST   /auth/login           - Iniciar sesión
+GET    /users                - Listar usuarios (admin only)
+
+### Incidentes
+POST   /incidentes           - Crear incidente (estudiante) → estado: "pendiente"
+GET    /incidentes           - Listar incidentes (filtrado por rol)
+PUT    /incidentes/{id}      - Editar incidente (admin)
+PUT    /incidentes/{id}/asignar - Asignar a trabajador (admin) → estado: "en atención" + NOTIFICACIÓN
+PUT    /incidentes/{id}/completar - Completar incidente (trabajador/admin) → estado: "completado" + NOTIFICACIÓN
+
+## 🔌 WebSocket API
+WS_URL: wss://6qtk3h60si.execute-api.us-east-1.amazonaws.com/dev
+
+Conexión: wss://6qtk3h60si.execute-api.us-east-1.amazonaws.com/dev?email={USER_EMAIL}
+
+### Mensajes que recibirás:
+1. action: "estado_change" - Cuando cambia el estado de tu incidente
+2. action: "new_incidente" - Cuando se crea un nuevo incidente (broadcast)
+
+## 🔔 FLUJO DE NOTIFICACIONES
+
+### Caso 1: Estudiante crea incidente
+1. Estudiante: POST /incidentes
+   → Estado: "pendiente"
+   → NO se envía notificación (es el creador)
+
+### Caso 2: Admin asigna incidente a trabajador
+1. Admin: PUT /incidentes/{id}/asignar
+   → Estado: "pendiente" → "en atención"
+   → ✅ NOTIFICACIÓN enviada al estudiante creador
+
+### Caso 3: Trabajador completa el incidente
+1. Trabajador: PUT /incidentes/{id}/completar
+   → Estado: "en atención" → "completado"
+   → ✅ NOTIFICACIÓN enviada al estudiante creador
+
+### Caso 4: Admin cambia estado manualmente
+1. Admin: PUT /incidentes/{id} (con "estado" en body)
+   → Estado: cualquier cambio
+   → ✅ NOTIFICACIÓN enviada al estudiante creador
+
+## 📝 HEADERS REQUERIDOS
+Todos los endpoints REST requieren:
+X-User-Email: {email-del-usuario}
+
+## 🧪 PRUEBA RÁPIDA
+
+### 1. Registrar usuarios
+# Admin
+curl -X POST https://pj9trlx4uf.execute-api.us-east-1.amazonaws.com/dev/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "admin123",
+    "nombre": "Admin Test",
+    "tipo": "admin"
+  }'
+
+# Estudiante
+curl -X POST https://pj9trlx4uf.execute-api.us-east-1.amazonaws.com/dev/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "estudiante@test.com",
+    "password": "est123",
+    "nombre": "Estudiante Test",
+    "tipo": "estudiante"
+  }'
+
+# Trabajador
+curl -X POST https://pj9trlx4uf.execute-api.us-east-1.amazonaws.com/dev/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "trabajador@test.com",
+    "password": "trab123",
+    "nombre": "Trabajador Test",
+    "tipo": "trabajador",
+    "especialidad": "Plomería"
+  }'
+
+### 2. Estudiante crea incidente
+curl -X POST https://pj9trlx4uf.execute-api.us-east-1.amazonaws.com/dev/incidentes \
+  -H "Content-Type: application/json" \
+  -H "X-User-Email: estudiante@test.com" \
+  -d '{
+    "titulo": "Fuga de agua en baño",
+    "descripcion": "Hay una fuga importante",
+    "tipo": "Plomería",
+    "piso": "2",
+    "lugar_especifico": "Baño principal"
+  }'
+# Respuesta: guardas el "id" del incidente
+
+### 3. Estudiante se conecta al WebSocket (navegador)
+const ws = new WebSocket('wss://6qtk3h60si.execute-api.us-east-1.amazonaws.com/dev?email=estudiante@test.com');
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('🔔 Notificación:', data);
+};
+
+### 4. Admin asigna el incidente (trigger notificación)
+curl -X PUT https://pj9trlx4uf.execute-api.us-east-1.amazonaws.com/dev/incidentes/{INCIDENT_ID}/asignar \
+  -H "Content-Type: application/json" \
+  -H "X-User-Email: admin@test.com" \
+  -d '{
+    "trabajador_email": "trabajador@test.com"
+  }'
+# → El estudiante recibe notificación: "pendiente" → "en atención"
+
+### 5. Trabajador completa el incidente (trigger notificación)
+curl -X PUT https://pj9trlx4uf.execute-api.us-east-1.amazonaws.com/dev/incidentes/{INCIDENT_ID}/completar \
+  -H "X-User-Email: trabajador@test.com"
+# → El estudiante recibe notificación: "en atención" → "completado"
+
+## 🎯 FORMATO DE NOTIFICACIÓN RECIBIDA
+
+{
+  "action": "estado_change",
+  "incidente_id": "uuid-del-incidente",
+  "titulo": "Fuga de agua en baño",
+  "old_estado": "pendiente",
+  "new_estado": "en atención",
+  "timestamp": "2024-11-16T12:34:56.789Z",
+  "mensaje": "Tu incidente 'Fuga de agua en baño' cambió de estado: pendiente → en atención"
+}
+
+## ✅ VERIFICACIÓN
+- [ ] Usuarios registrados correctamente
+- [ ] Incidente creado con estado "pendiente"
+- [ ] WebSocket conectado con email de estudiante
+- [ ] Notificación recibida al asignar
+- [ ] Notificación recibida al completar
+
+## 🐛 DEBUG
+Ver logs de Lambda:
+serverless logs -f api --tail
+serverless logs -f wsConnect --tail
+
+## 📚 DOCUMENTACIÓN
+- ESTADO_NOTIFICATIONS.md - Explicación detallada del sistema
+- frontend/notification-manager.js - Cliente WebSocket completo
