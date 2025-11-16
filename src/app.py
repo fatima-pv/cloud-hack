@@ -365,21 +365,21 @@ def lambda_handler(event, context):
         # Save old estado
         old_estado = item.get('estado', '')
         
-        # Marcar como completado
+        # Marcar como resuelto (según requerimientos)
         now = datetime.datetime.utcnow().isoformat()
-        item['estado'] = 'completado'
-        item['fecha_completado'] = now
-        item['completado_por'] = current_user.get('email')
+        item['estado'] = 'resuelto'
+        item['fecha_resuelto'] = now
+        item['resuelto_por'] = current_user.get('email')
         
         table.put_item(Item=item)
         
         # Notificar al usuario creador del cambio de estado
-        if item.get('creado_por') and old_estado != 'completado':
+        if item.get('creado_por') and old_estado != 'resuelto':
             _notify_user_estado_change(
                 item.get('creado_por'),
                 item,
                 old_estado,
-                'completado'
+                'resuelto'
             )
         
         return _resp(200, item)

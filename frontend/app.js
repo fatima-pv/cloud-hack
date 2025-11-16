@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     displayUserInfo(currentUser);
+    
+    // ✅ Conectar WebSocket automáticamente para notificaciones en tiempo real
+    setTimeout(() => {
+        connectWebSocket();
+        logWsMessage('🔄 Conectando automáticamente para recibir notificaciones en tiempo real...', 'info');
+    }, 500);
 });
 
 // Get current user from localStorage
@@ -174,12 +180,13 @@ function updateWsStatus(connected) {
     
     if (connected) {
         statusDot.classList.add('connected');
-        statusText.textContent = 'Connected';
-        connectWsBtn.textContent = 'Disconnect WebSocket';
+        statusText.textContent = '🔔 Notificaciones Activas';
+        connectWsBtn.textContent = 'Desconectar';
+        connectWsBtn.style.display = 'none'; // Ocultar botón ya que es automático
     } else {
         statusDot.classList.remove('connected');
-        statusText.textContent = 'Disconnected';
-        connectWsBtn.textContent = 'Connect WebSocket';
+        statusText.textContent = 'Reconectando...';
+        connectWsBtn.textContent = 'Reconectar';
     }
 }
 
@@ -203,7 +210,7 @@ function connectWebSocket() {
         ws = new WebSocket(wsUrlWithEmail);
         
         ws.onopen = () => {
-            logWsMessage('✅ WebSocket connected successfully!', 'success');
+            logWsMessage('✅ Conectado! Recibirás notificaciones en tiempo real', 'success');
             updateWsStatus(true);
         };
         
@@ -227,13 +234,21 @@ function connectWebSocket() {
         };
         
         ws.onerror = (error) => {
-            logWsMessage(`❌ WebSocket error: ${error.message || 'Connection failed'}`, 'error');
+            logWsMessage(`❌ Error de conexión: ${error.message || 'Falló la conexión'}`, 'error');
             updateWsStatus(false);
         };
         
         ws.onclose = () => {
-            logWsMessage('🔌 WebSocket disconnected', 'info');
+            logWsMessage('🔌 WebSocket desconectado. Intentando reconectar...', 'info');
             updateWsStatus(false);
+            
+            // ✅ Reconectar automáticamente después de 3 segundos
+            setTimeout(() => {
+                if (!wsConnected && currentUser) {
+                    logWsMessage('🔄 Reconectando...', 'info');
+                    connectWebSocket();
+                }
+            }, 3000);
         };
     } catch (error) {
         logWsMessage(`❌ Failed to connect: ${error.message}`, 'error');
