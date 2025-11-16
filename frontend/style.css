@@ -511,3 +511,22 @@ select:focus {
     outline: none;
     border-color: #667eea;
 }
+
+/* Help text styles */
+.help-text {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Worker select option styling */
+#worker-select option {
+    padding: 8px;
+    font-size: 14px;
+}
+
+#worker-select option:disabled {
+    color: #999;
+    background-color: #f5f5f5;
+}

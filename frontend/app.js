@@ -469,13 +469,33 @@ async function editIncident(incidentId) {
 
 // Admin: Assign incident to worker
 async function assignIncident(incidentId) {
-    // Get list of workers
+    // Get list of workers and all incidents to check availability
     const workers = await getWorkers();
+    const allIncidents = await getAllIncidentsForAdmin();
     
     if (workers.length === 0) {
         alert('No hay trabajadores registrados en el sistema');
         return;
     }
+    
+    // Get unique especialidades
+    const especialidades = [...new Set(workers.map(w => w.especialidad).filter(e => e))];
+    
+    // Calculate worker availability
+    const workersWithStatus = workers.map(worker => {
+        // Check if worker has active (not closed) incidents assigned
+        const activeIncidents = allIncidents.filter(inc => 
+            inc.asignado_a === worker.email && 
+            inc.estado !== 'resuelto' && 
+            inc.estado !== 'cerrado'
+        );
+        
+        return {
+            ...worker,
+            isAvailable: activeIncidents.length === 0,
+            activeIncidentsCount: activeIncidents.length
+        };
+    });
     
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -484,14 +504,20 @@ async function assignIncident(incidentId) {
             <h2>👤 Asignar Incidente a Trabajador</h2>
             <form id="assignForm">
                 <div class="form-group">
+                    <label>Filtrar por Especialidad:</label>
+                    <select id="especialidad-filter">
+                        <option value="">-- Todas las especialidades --</option>
+                        ${especialidades.map(e => `<option value="${e}">${e}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>Seleccionar Trabajador:</label>
                     <select id="worker-select" required>
                         <option value="">-- Selecciona un trabajador --</option>
-                        ${workers.map(w => {
-                            const especialidadText = w.especialidad ? ` - ${w.especialidad}` : '';
-                            return `<option value="${w.email}">${w.nombre} (${w.email})${especialidadText}</option>`;
-                        }).join('')}
                     </select>
+                    <small class="help-text" style="color: #666; margin-top: 5px; display: block;">
+                        🟢 Disponible | 🔴 Ocupado
+                    </small>
                 </div>
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">Asignar</button>
@@ -503,10 +529,50 @@ async function assignIncident(incidentId) {
     
     document.body.appendChild(modal);
     
+    const workerSelect = document.getElementById('worker-select');
+    const especialidadFilter = document.getElementById('especialidad-filter');
+    
+    // Function to populate workers dropdown based on filter
+    function populateWorkers(filterEspecialidad = '') {
+        const filteredWorkers = filterEspecialidad 
+            ? workersWithStatus.filter(w => w.especialidad === filterEspecialidad)
+            : workersWithStatus;
+        
+        workerSelect.innerHTML = '<option value="">-- Selecciona un trabajador --</option>';
+        
+        filteredWorkers.forEach(w => {
+            const especialidadText = w.especialidad ? ` - ${w.especialidad}` : '';
+            const statusIcon = w.isAvailable ? '🟢' : '🔴';
+            const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount} incidente${w.activeIncidentsCount > 1 ? 's' : ''})`;
+            
+            const option = document.createElement('option');
+            option.value = w.email;
+            option.textContent = `${statusIcon} ${w.nombre} ${especialidadText} - ${statusText}`;
+            
+            // Optionally disable occupied workers (remove this if you want admins to still be able to assign)
+            // option.disabled = !w.isAvailable;
+            
+            workerSelect.appendChild(option);
+        });
+    }
+    
+    // Initial population
+    populateWorkers();
+    
+    // Update workers when filter changes
+    especialidadFilter.addEventListener('change', (e) => {
+        populateWorkers(e.target.value);
+    });
+    
     document.getElementById('assignForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const trabajadorEmail = document.getElementById('worker-select').value;
+        
+        if (!trabajadorEmail) {
+            alert('Por favor selecciona un trabajador');
+            return;
+        }
         
         try {
             const response = await fetch(`${getApiUrl()}/${incidentId}/asignar`, {
@@ -550,6 +616,28 @@ async function getIncidentById(id) {
     } catch (error) {
         console.error('Error getting incident:', error);
         return null;
+    }
+}
+
+// Get all incidents (admin only - for checking worker availability)
+async function getAllIncidentsForAdmin() {
+    try {
+        const response = await fetch(getApiUrl(), {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Email': currentUser.email
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            return Array.isArray(data) ? data : [];
+        }
+        return [];
+    } catch (error) {
+        console.error('Error getting all incidents:', error);
+        return [];
     }
 }
 
