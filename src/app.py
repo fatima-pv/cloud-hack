@@ -106,6 +106,12 @@ def lambda_handler(event, context):
         new_id = str(uuid.uuid4())
         now = datetime.datetime.utcnow().isoformat()
         
+        # Validar nivel de riesgo si se proporciona
+        nivel_riesgo = data.get('Nivel_Riesgo', '').lower()
+        niveles_validos = ['bajo', 'medio', 'alto', 'crítico', 'critico']
+        if nivel_riesgo and nivel_riesgo not in niveles_validos:
+            nivel_riesgo = ''
+        
         item = {
             'id': new_id,
             'titulo': data.get('titulo', ''),
@@ -114,7 +120,7 @@ def lambda_handler(event, context):
             'piso': data.get('piso', ''),
             'lugar_especifico': data.get('lugar_especifico', ''),
             'foto': data.get('foto', ''),
-            'Nivel_Riesgo': '',
+            'Nivel_Riesgo': nivel_riesgo,
             'Fecha_creacion': now,
             'estado': 'pendiente',
             'veces_reportado': 1,

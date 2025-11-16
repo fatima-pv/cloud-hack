@@ -52,6 +52,17 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="nivel_urgencia">Nivel de Urgencia (Urgency Level):</label>
+                        <select id="nivel_urgencia" name="nivel_urgencia" required>
+                            <option value="">-- Selecciona un nivel --</option>
+                            <option value="bajo">🟢 Bajo - No requiere atención inmediata</option>
+                            <option value="medio">🟡 Medio - Atención en 24-48 horas</option>
+                            <option value="alto">🟠 Alto - Requiere atención pronta</option>
+                            <option value="crítico">🔴 Crítico - Atención inmediata</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label for="foto">Foto URL (Photo URL):</label>
                         <input type="text" id="foto" name="foto" placeholder="https://example.com/photo.jpg">
                     </div>

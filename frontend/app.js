@@ -209,7 +209,8 @@ incidentForm.addEventListener('submit', async (e) => {
         tipo: document.getElementById('tipo').value,
         piso: document.getElementById('piso').value,
         lugar_especifico: document.getElementById('lugar_especifico').value,
-        foto: document.getElementById('foto').value
+        foto: document.getElementById('foto').value,
+        Nivel_Riesgo: document.getElementById('nivel_urgencia').value
     };
     
     try {
