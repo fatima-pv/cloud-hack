@@ -11,17 +11,19 @@ provider:
   
   # Use the existing LabRole ARN for AWS Academy
   iam:
-    role: arn:aws:iam::175670145706:role/LabRole
+    role: arn:aws:iam::520247722169:role/LabRole
       
   environment:
     TABLE_NAME: ${self:custom.reportsTableName}
     CONNECTIONS_TABLE: ${self:custom.connectionsTableName}
+    USERS_TABLE: ${self:custom.usersTableName}
     WS_API_ID: !Ref WebsocketsApi
     WS_STAGE: ${self:provider.stage}
 
 custom:
   reportsTableName: ReportsTable-${self:provider.stage}
   connectionsTableName: ConnectionsTable-${self:provider.stage}
+  usersTableName: UsersTable-${self:provider.stage}
 
 functions:
   # REST API Lambda function
@@ -92,6 +94,66 @@ functions:
     environment:
       CONNECTIONS_TABLE: ${self:custom.connectionsTableName}
 
+  # Auth Lambda (Register & Login)
+  auth:
+    handler: src/auth.lambda_handler
+    description: Handle user authentication (register/login)
+    events:
+      - http:
+          path: /auth/register
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+      - http:
+          path: /auth/register
+          method: options
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+      - http:
+          path: /auth/login
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+      - http:
+          path: /auth/login
+          method: options
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+    environment:
+      USERS_TABLE: ${self:custom.usersTableName}
+
 resources:
   Resources:
     # DynamoDB Table for Reports/Incidents
@@ -130,6 +192,24 @@ resources:
           - Key: Environment
             Value: ${self:provider.stage}
 
+    # DynamoDB Table for Users (Authentication)
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.usersTableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        Tags:
+          - Key: Name
+            Value: ${self:custom.usersTableName}
+          - Key: Environment
+            Value: ${self:provider.stage}
+
   Outputs:
     # REST API Endpoint
     RestApiUrl:
@@ -159,6 +239,12 @@ resources:
       Value: ${self:custom.connectionsTableName}
       Export:
         Name: ${self:service}-${self:provider.stage}-connections-table
+
+    UsersTableName:
+      Description: DynamoDB table for user authentication
+      Value: ${self:custom.usersTableName}
+      Export:
+        Name: ${self:service}-${self:provider.stage}-users-table
 
 package:
   patterns:

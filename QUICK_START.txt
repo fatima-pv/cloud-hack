@@ -1,0 +1,159 @@
+┌──────────────────────────────────────────────────────────────┐
+│                                                              │
+│   🚀 GUÍA RÁPIDA - CLOUD HACK AUTENTICACIÓN                 │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+
+📦 DEPLOYMENT EN 3 PASOS
+════════════════════════════════════════════════════════════════
+
+1️⃣  DESPLEGAR BACKEND
+   
+   chmod +x deploy.sh
+   ./deploy.sh
+   
+   # O manualmente:
+   serverless deploy --stage dev
+
+   ⚠️  IMPORTANTE: Copia las URLs que aparecen al final!
+
+────────────────────────────────────────────────────────────────
+
+2️⃣  CONFIGURAR FRONTEND
+   
+   Edita: frontend/auth.js (línea 2)
+   
+   Cambia:
+   const API_BASE_URL = 'https://YOUR_API_GATEWAY_URL/dev';
+   
+   Por tu URL real:
+   const API_BASE_URL = 'https://abc123xyz.execute-api.us-east-1.amazonaws.com/dev';
+
+────────────────────────────────────────────────────────────────
+
+3️⃣  PROBAR LA APLICACIÓN
+   
+   a) Abre: frontend/register.html
+      → Crea tu primer usuario
+      
+   b) Abre: frontend/login.html
+      → Inicia sesión
+      
+   c) Verás: frontend/index.html
+      → App principal con tu nombre en el header
+
+════════════════════════════════════════════════════════════════
+
+👥 TIPOS DE USUARIO
+────────────────────────────────────────────────────────────────
+
+📧 Email                    →  Tipo
+────────────────────────────────────────────────────────────────
+user@utec.edu.pe           →  🎓 Estudiante (badge azul)
+admin@admin.utec.edu.pe    →  🔑 Admin (badge rojo)
+user@gmail.com             →  👔 Trabajador (badge verde)
+
+════════════════════════════════════════════════════════════════
+
+🧪 TESTING RÁPIDO
+────────────────────────────────────────────────────────────────
+
+# Reemplaza YOUR_API con tu URL real
+
+# Registrar estudiante
+curl -X POST https://YOUR_API/dev/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"nombre":"Test User","email":"test@utec.edu.pe","password":"test123"}'
+
+# Login
+curl -X POST https://YOUR_API/dev/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@utec.edu.pe","password":"test123"}'
+
+════════════════════════════════════════════════════════════════
+
+📁 ESTRUCTURA DE ARCHIVOS
+────────────────────────────────────────────────────────────────
+
+BACKEND
+  src/auth.py              ← Lambda de autenticación
+  serverless.yml           ← Configuración (auth function + UsersTable)
+
+FRONTEND  
+  frontend/login.html      ← Página de login
+  frontend/register.html   ← Página de registro
+  frontend/auth.js         ← Lógica de autenticación ⚠️ CONFIGURAR AQUÍ
+  frontend/index.html      ← App principal (protegida)
+
+DOCUMENTACIÓN
+  IMPLEMENTATION_SUMMARY.md  ← Resumen completo
+  docs/AUTH_README.md        ← Documentación detallada
+  docs/test-users.md         ← Usuarios de prueba
+
+════════════════════════════════════════════════════════════════
+
+✅ CHECKLIST
+────────────────────────────────────────────────────────────────
+
+□ AWS CLI configurado (aws configure)
+□ Serverless instalado (npm install -g serverless)
+□ Ejecutado: serverless deploy
+□ Copiadas las URLs del deployment
+□ Actualizado API_BASE_URL en frontend/auth.js
+□ Probado registro en frontend/register.html
+□ Probado login en frontend/login.html
+□ Verificado redirect a index.html
+□ Verificado logout funciona
+
+════════════════════════════════════════════════════════════════
+
+🔥 COMANDOS ÚTILES
+────────────────────────────────────────────────────────────────
+
+# Ver info del deployment
+serverless info
+
+# Ver logs de la función auth
+serverless logs -f auth --tail
+
+# Eliminar todo el stack
+serverless remove
+
+# Redesplegar solo la función auth
+serverless deploy function -f auth
+
+════════════════════════════════════════════════════════════════
+
+❓ PROBLEMAS COMUNES
+────────────────────────────────────────────────────────────────
+
+PROBLEMA: "Error de conexión"
+SOLUCIÓN: Verifica API_BASE_URL en frontend/auth.js
+
+PROBLEMA: "CORS error"  
+SOLUCIÓN: Ya está configurado, intenta redesplegar
+
+PROBLEMA: "No redirige después de login"
+SOLUCIÓN: Abre consola del navegador, verifica errores
+
+PROBLEMA: "Credenciales inválidas"
+SOLUCIÓN: Verifica email y password, intenta registrarte de nuevo
+
+════════════════════════════════════════════════════════════════
+
+📚 MÁS INFORMACIÓN
+────────────────────────────────────────────────────────────────
+
+README.md                    → Documentación general del proyecto
+IMPLEMENTATION_SUMMARY.md    → Resumen de implementación
+docs/AUTH_README.md          → Documentación completa de auth
+docs/test-users.md           → Usuarios de prueba pre-configurados
+
+════════════════════════════════════════════════════════════════
+
+🎉 ¡LISTO PARA USAR!
+
+El sistema de autenticación está completamente implementado.
+Ahora puedes continuar con las demás funcionalidades.
+
+════════════════════════════════════════════════════════════════

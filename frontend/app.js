@@ -1,6 +1,56 @@
 // WebSocket connection
 let ws = null;
 let wsConnected = false;
+let currentUser = null;
+
+// Check authentication on page load
+document.addEventListener('DOMContentLoaded', () => {
+    currentUser = getCurrentUser();
+    if (!currentUser) {
+        window.location.href = 'login.html';
+        return;
+    }
+    displayUserInfo(currentUser);
+});
+
+// Get current user from localStorage
+function getCurrentUser() {
+    const userStr = localStorage.getItem('currentUser');
+    if (userStr) {
+        try {
+            return JSON.parse(userStr);
+        } catch (e) {
+            return null;
+        }
+    }
+    return null;
+}
+
+// Display user info in header
+function displayUserInfo(user) {
+    const userName = document.getElementById('userName');
+    const userType = document.getElementById('userType');
+    
+    if (userName) {
+        userName.textContent = `👤 ${user.nombre}`;
+    }
+    
+    if (userType) {
+        userType.textContent = user.tipo.toUpperCase();
+        userType.className = `user-badge badge-${user.tipo}`;
+    }
+}
+
+// Logout handler
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        if (confirm('¿Estás seguro que quieres cerrar sesión?')) {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'login.html';
+        }
+    });
+}
 
 // DOM Elements
 const incidentForm = document.getElementById('incidentForm');

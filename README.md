@@ -1,0 +1,202 @@
+# Cloud Hack - Sistema de Gestión de Incidentes UTEC
+
+Sistema serverless para gestión de reportes de incidentes con autenticación de usuarios basada en dominios de correo electrónico.
+
+## 🚀 Características
+
+- ✅ **Autenticación de Usuarios** (Registro y Login)
+- ✅ **Tipos de Usuario Automáticos** basados en dominio de correo
+  - Estudiantes (`@utec.edu.pe`)
+  - Administradores (`@admin.utec.edu.pe`)
+  - Trabajadores (otros dominios)
+- ✅ **Gestión de Incidentes** (REST API)
+- ✅ **WebSocket en Tiempo Real** para actualizaciones
+- ✅ **DynamoDB** para persistencia de datos
+- ✅ **Serverless Framework** para deployment en AWS
+
+## 📁 Estructura del Proyecto
+
+```
+cloud-hack/
+├── src/
+│   ├── app.py           # Lambda function para incidentes
+│   ├── auth.py          # Lambda function para autenticación
+│   ├── connect.py       # WebSocket connect handler
+│   └── disconnect.py    # WebSocket disconnect handler
+├── frontend/
+│   ├── index.html       # Página principal (requiere auth)
+│   ├── login.html       # Página de login
+│   ├── register.html    # Página de registro
+│   ├── app.js          # Lógica principal
+│   ├── auth.js         # Lógica de autenticación
+│   ├── style.css       # Estilos principales
+│   └── auth-style.css  # Estilos de autenticación
+├── docs/
+│   ├── AUTH_README.md  # Documentación de autenticación
+│   └── test-users.md   # Usuarios de prueba
+├── serverless.yml      # Configuración Serverless
+└── requirements.txt    # Dependencias Python
+```
+
+## 🔧 Tecnologías
+
+- **Backend**: AWS Lambda (Python 3.9)
+- **Base de Datos**: DynamoDB
+- **API**: API Gateway (REST + WebSocket)
+- **Frontend**: HTML5 + JavaScript (Vanilla)
+- **IaC**: Serverless Framework
+- **Autenticación**: SHA-256 password hashing
+
+## 📋 Prerequisitos
+
+- AWS Account (AWS Academy o cuenta personal)
+- Node.js y npm instalados
+- Serverless Framework: `npm install -g serverless`
+- AWS CLI configurado: `aws configure`
+
+## 🚀 Deployment
+
+### 1. Instalar dependencias
+
+```bash
+npm install -g serverless
+```
+
+### 2. Configurar AWS Credentials
+
+```bash
+aws configure
+# Ingresa tus credenciales AWS
+```
+
+### 3. Desplegar en AWS
+
+```bash
+# Desplegar todo el stack
+serverless deploy
+
+# O para un stage específico
+serverless deploy --stage prod
+```
+
+### 4. Obtener URLs
+
+Después del deployment, verás las URLs en la consola:
+
+```
+endpoints:
+  POST - https://xxxxx.execute-api.us-east-1.amazonaws.com/dev/auth/register
+  POST - https://xxxxx.execute-api.us-east-1.amazonaws.com/dev/auth/login
+  POST - https://xxxxx.execute-api.us-east-1.amazonaws.com/dev/incidentes
+  GET  - https://xxxxx.execute-api.us-east-1.amazonaws.com/dev/incidentes
+  wss://xxxxx.execute-api.us-east-1.amazonaws.com/dev
+```
+
+### 5. Configurar Frontend
+
+Actualiza las URLs en:
+- `frontend/auth.js` - línea 2: `const API_BASE_URL`
+- `frontend/index.html` - inputs de configuración
+
+## 📖 Uso
+
+### Registro de Usuario
+
+1. Abre `frontend/register.html` en tu navegador
+2. Completa el formulario:
+   - Nombre completo
+   - Email (determina el tipo de usuario automáticamente)
+   - Contraseña (mínimo 6 caracteres)
+3. Click en "Crear Cuenta"
+
+**Tipos de usuario según email:**
+- `usuario@utec.edu.pe` → Estudiante
+- `usuario@admin.utec.edu.pe` → Admin
+- `usuario@otro.com` → Trabajador
+
+### Login
+
+1. Abre `frontend/login.html`
+2. Ingresa email y contraseña
+3. Serás redirigido a la aplicación principal
+
+### Crear Incidente
+
+1. En la página principal (requiere login)
+2. Completa el formulario de incidente
+3. Click en "Submit Incident"
+4. El incidente se guarda y se notifica vía WebSocket
+
+## 🧪 Testing
+
+Ver `docs/test-users.md` para usuarios de prueba preconfigurables.
+
+### Testing con cURL
+
+```bash
+# Registro
+curl -X POST https://YOUR_API/dev/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"nombre":"Test User","email":"test@utec.edu.pe","password":"test123"}'
+
+# Login
+curl -X POST https://YOUR_API/dev/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@utec.edu.pe","password":"test123"}'
+```
+
+## 🔐 Seguridad
+
+- Contraseñas hasheadas con SHA-256
+- Validación de email único
+- CORS configurado
+- Protección de rutas en frontend
+- Variables de entorno para configuración
+
+## 📊 Recursos AWS Creados
+
+- **Lambda Functions**: 4 (auth, api, wsConnect, wsDisconnect)
+- **DynamoDB Tables**: 3 (Users, Reports, Connections)
+- **API Gateway**: 2 (REST API, WebSocket API)
+- **IAM Roles**: Configurado con LabRole para AWS Academy
+
+## 🐛 Troubleshooting
+
+### Error: "Module not found"
+```bash
+# Asegúrate de tener boto3 en requirements.txt
+pip install boto3
+```
+
+### Error: "Invalid credentials"
+```bash
+# Reconfigura AWS CLI
+aws configure
+```
+
+### Frontend no conecta con backend
+1. Verifica las URLs en los archivos de configuración
+2. Asegúrate de que CORS esté habilitado
+3. Revisa la consola del navegador para errores
+
+## 📚 Documentación Adicional
+
+- [Documentación de Autenticación](docs/AUTH_README.md)
+- [Usuarios de Prueba](docs/test-users.md)
+
+## 🔄 Próximos Pasos
+
+- [ ] Implementar JWT tokens
+- [ ] Agregar roles y permisos específicos por tipo de usuario
+- [ ] Recuperación de contraseña
+- [ ] Verificación de email
+- [ ] Panel de administración
+- [ ] Dashboard de métricas
+
+## 👥 Contribuidores
+
+Proyecto desarrollado para UTEC Cloud Computing.
+
+## 📄 Licencia
+
+MIT License
