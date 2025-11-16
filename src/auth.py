@@ -86,6 +86,8 @@ def register_handler(event, context):
     nombre = data.get('nombre', '').strip()
     especialidad = data.get('especialidad', '').strip()
     
+    print(f"[REGISTER] Received data: email={email}, nombre={nombre}, especialidad={especialidad}")
+    
     # Validation
     if not email or not password or not nombre:
         return _resp(400, {
@@ -146,6 +148,7 @@ def register_handler(event, context):
     # Añadir especialidad solo para trabajadores
     if user_type == 'trabajador':
         user['especialidad'] = especialidad
+        print(f"[REGISTER] Saving trabajador with especialidad: {especialidad}")
     
     try:
         users_table.put_item(Item=user)
