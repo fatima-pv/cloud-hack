@@ -563,7 +563,7 @@ async function assignIncident(incidentId) {
                     <label>Filtrar por Especialidad:</label>
                     <select id="especialidad-filter">
                         <option value="">-- Todas las especialidades --</option>
-                        ${especialidades.map(e => `<option value="${e}" ${e === incident.tipo_trabajador_requerido ? 'selected' : ''}>${e}</option>`).join('')}
+                        ${especialidades.map(e => `<option value="${e}">${e}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group">
@@ -601,19 +601,21 @@ async function assignIncident(incidentId) {
     function populateWorkers(filterEspecialidad = '') {
         console.log('🔍 populateWorkers called with filter:', filterEspecialidad);
         console.log('📊 Total workers with status:', workersWithStatus.length);
-        console.log('👥 Workers data:', workersWithStatus.map(w => ({
-            nombre: w.nombre,
-            especialidad: w.especialidad,
-            email: w.email
-        })));
         
-        const filteredWorkers = filterEspecialidad 
-            ? workersWithStatus.filter(w => {
-                const matches = w.especialidad === filterEspecialidad;
-                console.log(`  - ${w.nombre}: especialidad="${w.especialidad}" === "${filterEspecialidad}" ? ${matches}`);
+        let filteredWorkers;
+        
+        if (filterEspecialidad) {
+            // Filtrar por especialidad
+            filteredWorkers = workersWithStatus.filter(w => {
+                const hasEspecialidad = w.especialidad && w.especialidad !== 'undefined';
+                const matches = hasEspecialidad && w.especialidad === filterEspecialidad;
+                console.log(`  - ${w.nombre}: especialidad="${w.especialidad}" (has: ${hasEspecialidad}) === "${filterEspecialidad}" ? ${matches}`);
                 return matches;
-            })
-            : workersWithStatus;
+            });
+        } else {
+            // Sin filtro, mostrar todos
+            filteredWorkers = workersWithStatus;
+        }
         
         console.log('✅ Filtered workers count:', filteredWorkers.length);
         console.log('✅ Filtered workers:', filteredWorkers.map(w => w.nombre));
@@ -621,48 +623,64 @@ async function assignIncident(incidentId) {
         workerSelect.innerHTML = '<option value="">-- Selecciona un trabajador --</option>';
         
         if (filteredWorkers.length === 0) {
-            const option = document.createElement('option');
-            option.value = '';
-            option.textContent = filterEspecialidad 
-                ? `No hay trabajadores de tipo ${filterEspecialidad}` 
-                : 'No hay trabajadores disponibles';
-            option.disabled = true;
-            workerSelect.appendChild(option);
-            console.warn('⚠️ No workers found for filter:', filterEspecialidad);
-            return;
-        }
-        
-        // Separar trabajadores por especialidad (los que coinciden primero)
-        const matchingWorkers = filteredWorkers.filter(w => 
-            incident.tipo_trabajador_requerido && w.especialidad === incident.tipo_trabajador_requerido
-        );
-        const otherWorkers = filteredWorkers.filter(w => 
-            !incident.tipo_trabajador_requerido || w.especialidad !== incident.tipo_trabajador_requerido
-        );
-        
-        // Agregar trabajadores que coinciden primero
-        if (matchingWorkers.length > 0 && incident.tipo_trabajador_requerido) {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = `✅ ${incident.tipo_trabajador_requerido} (Recomendados)`;
-            matchingWorkers.forEach(w => {
-                const statusIcon = w.isAvailable ? '🟢' : '🔴';
-                const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount})`;
+            // Si no hay con la especialidad, mostrar TODOS con advertencia
+            if (filterEspecialidad) {
+                console.warn(`⚠️ No hay trabajadores con especialidad "${filterEspecialidad}", mostrando TODOS`);
                 
+                // Agregar mensaje de advertencia
+                const warningOption = document.createElement('option');
+                warningOption.value = '';
+                warningOption.disabled = true;
+                warningOption.textContent = `⚠️ No hay trabajadores de "${filterEspecialidad}" - Mostrando todos`;
+                workerSelect.appendChild(warningOption);
+                
+                // Mostrar TODOS los trabajadores
+                filteredWorkers = workersWithStatus;
+            } else {
                 const option = document.createElement('option');
-                option.value = w.email;
-                option.textContent = `${statusIcon} ${w.nombre} - ${statusText}`;
-                optgroup.appendChild(option);
-            });
-            workerSelect.appendChild(optgroup);
+                option.value = '';
+                option.textContent = 'No hay trabajadores disponibles';
+                option.disabled = true;
+                workerSelect.appendChild(option);
+                return;
+            }
         }
         
-        // Agregar otros trabajadores
-        if (otherWorkers.length > 0) {
+        // Simplificado: Solo separar si realmente hay trabajadores con la especialidad correcta
+        const hasMatchingWorkers = incident.tipo_trabajador_requerido && 
+            filteredWorkers.some(w => w.especialidad === incident.tipo_trabajador_requerido);
+        
+        if (hasMatchingWorkers) {
+            // Separar: recomendados vs otros
+            const matchingWorkers = filteredWorkers.filter(w => 
+                w.especialidad === incident.tipo_trabajador_requerido
+            );
+            const otherWorkers = filteredWorkers.filter(w => 
+                w.especialidad !== incident.tipo_trabajador_requerido
+            );
+            
+            // Grupo de recomendados
             if (matchingWorkers.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = `✅ ${incident.tipo_trabajador_requerido} (Recomendados)`;
+                matchingWorkers.forEach(w => {
+                    const statusIcon = w.isAvailable ? '🟢' : '🔴';
+                    const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount})`;
+                    
+                    const option = document.createElement('option');
+                    option.value = w.email;
+                    option.textContent = `${statusIcon} ${w.nombre} - ${statusText}`;
+                    optgroup.appendChild(option);
+                });
+                workerSelect.appendChild(optgroup);
+            }
+            
+            // Grupo de otros
+            if (otherWorkers.length > 0) {
                 const optgroup = document.createElement('optgroup');
                 optgroup.label = 'Otros trabajadores';
                 otherWorkers.forEach(w => {
-                    const especialidadText = w.especialidad ? ` - ${w.especialidad}` : '';
+                    const especialidadText = w.especialidad && w.especialidad !== 'undefined' ? ` - ${w.especialidad}` : '';
                     const statusIcon = w.isAvailable ? '🟢' : '🔴';
                     const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount})`;
                     
@@ -672,20 +690,20 @@ async function assignIncident(incidentId) {
                     optgroup.appendChild(option);
                 });
                 workerSelect.appendChild(optgroup);
-            } else {
-                // Si no hay trabajadores recomendados, agregar todos normalmente
-                filteredWorkers.forEach(w => {
-                    const especialidadText = w.especialidad ? ` - ${w.especialidad}` : '';
-                    const statusIcon = w.isAvailable ? '🟢' : '🔴';
-                    const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount})`;
-                    
-                    const option = document.createElement('option');
-                    option.value = w.email;
-                    option.textContent = `${statusIcon} ${w.nombre}${especialidadText} - ${statusText}`;
-                    
-                    workerSelect.appendChild(option);
-                });
             }
+        } else {
+            // Sin separación: mostrar todos los trabajadores normalmente
+            filteredWorkers.forEach(w => {
+                const especialidadText = w.especialidad && w.especialidad !== 'undefined' ? ` - ${w.especialidad}` : ' - Sin especialidad';
+                const statusIcon = w.isAvailable ? '🟢' : '🔴';
+                const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount})`;
+                
+                const option = document.createElement('option');
+                option.value = w.email;
+                option.textContent = `${statusIcon} ${w.nombre}${especialidadText} - ${statusText}`;
+                
+                workerSelect.appendChild(option);
+            });
         }
         
         console.log('✅ Worker select populated with', filteredWorkers.length, 'workers');
@@ -755,7 +773,7 @@ async function assignIncident(incidentId) {
 
 // Get incident by ID
 async function getIncidentById(id) {
-    console.log('🔎 Fetching incident by ID:', id);
+    console.log('🔎 Fetching incident by ID:', id, 'Type:', typeof id);
     
     try {
         const response = await fetch(getApiUrl(), {
@@ -775,14 +793,17 @@ async function getIncidentById(id) {
         const incidents = Array.isArray(data) ? data : [];
         console.log('📋 Total incidents retrieved:', incidents.length);
         console.log('🔍 Looking for ID:', id);
+        console.log('🔍 ID types in incidents:', incidents.slice(0, 3).map(i => ({ id: i.id, type: typeof i.id })));
         
-        const found = incidents.find(i => i.id === id);
+        // Convert both to strings for comparison to handle any type mismatches
+        const found = incidents.find(i => String(i.id) === String(id));
         
         if (found) {
             console.log('✅ Incident found:', found);
         } else {
             console.warn('⚠️ Incident NOT found in list');
             console.log('Available IDs:', incidents.map(i => i.id));
+            console.log('Looking for:', id);
         }
         
         return found;

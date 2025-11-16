@@ -73,6 +73,8 @@ if (registerForm) {
         const confirmPassword = document.getElementById('confirmPassword').value;
         const especialidad = document.getElementById('especialidad').value;
         
+        console.log('📝 Form values:', { nombre, email, especialidad });
+        
         // Validate passwords match
         if (password !== confirmPassword) {
             showResult('registerResult', 'Las contraseñas no coinciden', 'error');
@@ -82,13 +84,15 @@ if (registerForm) {
         // Show preview of user type
         const userType = getUserTypeFromEmail(email);
         
+        console.log('👤 Detected user type:', userType);
+        
         // Validate especialidad for trabajador
         if (userType === 'trabajador' && !especialidad) {
             showResult('registerResult', 'Debes seleccionar una especialidad para el personal', 'error');
             return;
         }
         
-        console.log(`Registering as: ${userType}`);
+        console.log(`Registering as: ${userType}${userType === 'trabajador' ? ` with especialidad: ${especialidad}` : ''}`);
         
         // Build request body
         const requestBody = {
@@ -101,6 +105,8 @@ if (registerForm) {
         if (userType === 'trabajador' && especialidad) {
             requestBody.especialidad = especialidad;
         }
+        
+        console.log('📤 Sending request body:', requestBody);
         
         try {
             const response = await fetch(`${API_BASE_URL}/auth/register`, {
