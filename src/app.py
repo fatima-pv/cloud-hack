@@ -86,6 +86,8 @@ def lambda_handler(event, context):
     method = event.get('httpMethod')
     path = event.get('path', '').rstrip('/')
     
+    print(f"[LAMBDA] Received request - Method: {method}, Path: {path}")
+    
     # Handle OPTIONS for CORS preflight
     if method == 'OPTIONS':
         return _resp(200, {'message': 'OK'})
@@ -216,6 +218,8 @@ def lambda_handler(event, context):
         return _resp(200, item)
 
     # ASSIGN: PUT /incidentes/{id}/asignar (Solo ADMIN)
+    print(f"[DEBUG] Checking assign route - path.endswith('/asignar'): {path.endswith('/asignar')}, method=='PUT': {method == 'PUT'}")
+    
     if path.endswith('/asignar') and method == 'PUT':
         print(f"[ASSIGN] Path: {path}, Method: {method}")
         
