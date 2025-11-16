@@ -210,7 +210,8 @@ incidentForm.addEventListener('submit', async (e) => {
         piso: document.getElementById('piso').value,
         lugar_especifico: document.getElementById('lugar_especifico').value,
         foto: document.getElementById('foto').value,
-        Nivel_Riesgo: document.getElementById('nivel_urgencia').value
+        Nivel_Riesgo: document.getElementById('nivel_urgencia').value,
+        tipo_trabajador_requerido: document.getElementById('tipo_trabajador_requerido').value
     };
     
     try {
@@ -368,6 +369,7 @@ function renderIncidentCard(incident) {
             <h3>${escapeHtml(incident.titulo || 'Sin título')}</h3>
             <p><strong>Descripción:</strong> ${escapeHtml(incident.descripcion || 'Sin descripción')}</p>
             ${incident.tipo ? `<p><strong>Tipo:</strong> ${escapeHtml(incident.tipo)}</p>` : ''}
+            ${incident.tipo_trabajador_requerido ? `<p><strong>🔧 Requiere:</strong> <span class="badge-trabajador">${escapeHtml(incident.tipo_trabajador_requerido)}</span></p>` : ''}
             ${incident.piso ? `<p><strong>Piso:</strong> ${escapeHtml(incident.piso)}</p>` : ''}
             ${incident.lugar_especifico ? `<p><strong>Lugar:</strong> ${escapeHtml(incident.lugar_especifico)}</p>` : ''}
             ${incident.creado_por_nombre ? `<p><strong>Creado por:</strong> ${escapeHtml(incident.creado_por_nombre)}</p>` : ''}
@@ -382,8 +384,16 @@ function renderIncidentCard(incident) {
 
 // Admin: Edit incident
 async function editIncident(incidentId) {
+    console.log('🔍 Attempting to edit incident with ID:', incidentId);
+    
     const incident = await getIncidentById(incidentId);
-    if (!incident) return;
+    console.log('📦 Incident data retrieved:', incident);
+    
+    if (!incident) {
+        alert('❌ Error: No se pudo obtener el incidente. ID: ' + incidentId);
+        console.error('❌ Incident not found in list. ID:', incidentId);
+        return;
+    }
     
     // Create modal for editing
     const modal = document.createElement('div');
@@ -443,8 +453,16 @@ async function editIncident(incidentId) {
             estado: document.getElementById('edit-estado').value
         };
         
+        console.log('📝 Submitting edit for incident ID:', incidentId);
+        console.log('📝 Updates:', updates);
+        
         try {
-            const response = await fetch(`${getApiUrl()}/${incidentId}`, {
+            const apiUrl = getApiUrl();
+            const editUrl = `${apiUrl}/${incidentId}`;
+            console.log('📡 Calling PUT:', editUrl);
+            console.log('📧 User email:', currentUser.email);
+            
+            const response = await fetch(editUrl, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -454,15 +472,22 @@ async function editIncident(incidentId) {
             });
             
             const data = await response.json();
+            console.log('📨 Edit response:', {
+                status: response.status,
+                ok: response.ok,
+                data: data
+            });
             
             if (response.ok) {
                 alert('✅ Incidente actualizado exitosamente');
                 modal.remove();
                 loadIncidents();
             } else {
+                console.error('❌ Edit failed:', data);
                 alert(`❌ Error: ${data.error || 'No se pudo actualizar'}`);
             }
         } catch (error) {
+            console.error('❌ Edit error:', error);
             alert(`❌ Error: ${error.message}`);
         }
     });
@@ -470,12 +495,22 @@ async function editIncident(incidentId) {
 
 // Admin: Assign incident to worker
 async function assignIncident(incidentId) {
+    // Primero obtener el incidente para saber qué tipo de trabajador requiere
+    const incident = await getIncidentById(incidentId);
+    if (!incident) {
+        alert('❌ Error: No se pudo obtener el incidente');
+        return;
+    }
+    
+    console.log('📋 Incident to assign:', incident);
+    console.log('🔧 Required worker type:', incident.tipo_trabajador_requerido);
+    
     // Get list of workers and all incidents to check availability
     const workers = await getWorkers();
     const allIncidents = await getAllIncidentsForAdmin();
     
-    console.log('Workers loaded:', workers);
-    console.log('All incidents:', allIncidents);
+    console.log('Workers loaded:', workers.length);
+    console.log('All incidents:', allIncidents.length);
     
     if (workers.length === 0) {
         alert('No hay trabajadores registrados en el sistema');
@@ -504,17 +539,26 @@ async function assignIncident(incidentId) {
     
     console.log('Workers with status:', workersWithStatus);
     
+    // Mensaje si el incidente requiere un tipo específico
+    const requiredWorkerMsg = incident.tipo_trabajador_requerido 
+        ? `<div class="alert-info" style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
+               <strong>🔧 Este incidente requiere:</strong> ${incident.tipo_trabajador_requerido}
+               <br><small>Se mostrarán trabajadores de esta especialidad primero</small>
+           </div>` 
+        : '';
+    
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
         <div class="modal-content">
             <h2>👤 Asignar Incidente a Trabajador</h2>
+            ${requiredWorkerMsg}
             <form id="assignForm">
                 <div class="form-group">
                     <label>Filtrar por Especialidad:</label>
                     <select id="especialidad-filter">
                         <option value="">-- Todas las especialidades --</option>
-                        ${especialidades.map(e => `<option value="${e}">${e}</option>`).join('')}
+                        ${especialidades.map(e => `<option value="${e}" ${e === incident.tipo_trabajador_requerido ? 'selected' : ''}>${e}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group">
@@ -534,10 +578,19 @@ async function assignIncident(incidentId) {
         </div>
     `;
     
+    // Añadir modal al DOM PRIMERO
     document.body.appendChild(modal);
     
+    // DESPUÉS obtener los elementos (ahora sí existen en el DOM)
     const workerSelect = document.getElementById('worker-select');
     const especialidadFilter = document.getElementById('especialidad-filter');
+    const assignForm = document.getElementById('assignForm');
+    
+    console.log('Modal elements found:', {
+        workerSelect: !!workerSelect,
+        especialidadFilter: !!especialidadFilter,
+        assignForm: !!assignForm
+    });
     
     // Function to populate workers dropdown based on filter
     function populateWorkers(filterEspecialidad = '') {
@@ -545,63 +598,114 @@ async function assignIncident(incidentId) {
             ? workersWithStatus.filter(w => w.especialidad === filterEspecialidad)
             : workersWithStatus;
         
-        console.log('Filtering by:', filterEspecialidad);
-        console.log('Filtered workers:', filteredWorkers);
+        console.log('Populating workers - Filter:', filterEspecialidad);
+        console.log('Filtered workers count:', filteredWorkers.length);
         
         workerSelect.innerHTML = '<option value="">-- Selecciona un trabajador --</option>';
         
         if (filteredWorkers.length === 0) {
             const option = document.createElement('option');
             option.value = '';
-            option.textContent = 'No hay trabajadores con esta especialidad';
+            option.textContent = filterEspecialidad 
+                ? `No hay trabajadores de tipo ${filterEspecialidad}` 
+                : 'No hay trabajadores disponibles';
             option.disabled = true;
             workerSelect.appendChild(option);
             return;
         }
         
-        filteredWorkers.forEach(w => {
-            const especialidadText = w.especialidad ? ` - ${w.especialidad}` : ' - Sin especialidad';
-            const statusIcon = w.isAvailable ? '🟢' : '🔴';
-            const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount} incidente${w.activeIncidentsCount > 1 ? 's' : ''})`;
-            
-            const option = document.createElement('option');
-            option.value = w.email;
-            option.textContent = `${statusIcon} ${w.nombre}${especialidadText} - ${statusText}`;
-            
-            workerSelect.appendChild(option);
-        });
+        // Separar trabajadores por especialidad (los que coinciden primero)
+        const matchingWorkers = filteredWorkers.filter(w => 
+            incident.tipo_trabajador_requerido && w.especialidad === incident.tipo_trabajador_requerido
+        );
+        const otherWorkers = filteredWorkers.filter(w => 
+            !incident.tipo_trabajador_requerido || w.especialidad !== incident.tipo_trabajador_requerido
+        );
         
-        console.log('Worker select populated with', filteredWorkers.length, 'workers');
+        // Agregar trabajadores que coinciden primero
+        if (matchingWorkers.length > 0 && incident.tipo_trabajador_requerido) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = `✅ ${incident.tipo_trabajador_requerido} (Recomendados)`;
+            matchingWorkers.forEach(w => {
+                const statusIcon = w.isAvailable ? '🟢' : '🔴';
+                const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount})`;
+                
+                const option = document.createElement('option');
+                option.value = w.email;
+                option.textContent = `${statusIcon} ${w.nombre} - ${statusText}`;
+                optgroup.appendChild(option);
+            });
+            workerSelect.appendChild(optgroup);
+        }
+        
+        // Agregar otros trabajadores
+        if (otherWorkers.length > 0) {
+            if (matchingWorkers.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = 'Otros trabajadores';
+                otherWorkers.forEach(w => {
+                    const especialidadText = w.especialidad ? ` - ${w.especialidad}` : '';
+                    const statusIcon = w.isAvailable ? '🟢' : '🔴';
+                    const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount})`;
+                    
+                    const option = document.createElement('option');
+                    option.value = w.email;
+                    option.textContent = `${statusIcon} ${w.nombre}${especialidadText} - ${statusText}`;
+                    optgroup.appendChild(option);
+                });
+                workerSelect.appendChild(optgroup);
+            } else {
+                // Si no hay trabajadores recomendados, agregar todos normalmente
+                filteredWorkers.forEach(w => {
+                    const especialidadText = w.especialidad ? ` - ${w.especialidad}` : '';
+                    const statusIcon = w.isAvailable ? '🟢' : '🔴';
+                    const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount})`;
+                    
+                    const option = document.createElement('option');
+                    option.value = w.email;
+                    option.textContent = `${statusIcon} ${w.nombre}${especialidadText} - ${statusText}`;
+                    
+                    workerSelect.appendChild(option);
+                });
+            }
+        }
+        
+        console.log('✅ Worker select populated with', filteredWorkers.length, 'workers');
     }
     
-    // Initial population
-    populateWorkers();
+    // Initial population - usar el tipo de trabajador requerido si existe
+    const initialFilter = incident.tipo_trabajador_requerido || '';
+    console.log('🎯 Initial filter set to:', initialFilter || 'ALL');
+    populateWorkers(initialFilter);
     
     // Update workers when filter changes
     especialidadFilter.addEventListener('change', (e) => {
-        console.log('Filter changed to:', e.target.value);
-        populateWorkers(e.target.value);
+        const selectedEspecialidad = e.target.value;
+        console.log('🔍 Filter changed to:', selectedEspecialidad || 'ALL');
+        populateWorkers(selectedEspecialidad);
     });
     
-    const assignForm = document.getElementById('assignForm');
-    console.log('Assign form found:', assignForm);
-    
+    // Handle form submission
     assignForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        console.log('Form submitted!');
+        console.log('📝 Assignment form submitted!');
         
-        const trabajadorEmail = document.getElementById('worker-select').value;
-        console.log('Selected worker:', trabajadorEmail);
+        const trabajadorEmail = workerSelect.value;
+        console.log('Selected worker email:', trabajadorEmail);
         
         if (!trabajadorEmail) {
-            alert('Por favor selecciona un trabajador');
+            alert('⚠️ Por favor selecciona un trabajador');
             return;
         }
         
-        console.log('Attempting to assign to:', trabajadorEmail);
+        console.log('🚀 Attempting to assign incident', incidentId, 'to worker:', trabajadorEmail);
         
         try {
-            const response = await fetch(`${getApiUrl()}/${incidentId}/asignar`, {
+            const apiUrl = getApiUrl();
+            const assignUrl = `${apiUrl}/${incidentId}/asignar`;
+            console.log('📡 Calling API:', assignUrl);
+            
+            const response = await fetch(assignUrl, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -611,7 +715,11 @@ async function assignIncident(incidentId) {
             });
             
             const data = await response.json();
-            console.log('Assignment response:', data);
+            console.log('📨 Assignment response:', {
+                status: response.status,
+                ok: response.ok,
+                data: data
+            });
             
             if (response.ok) {
                 alert('✅ Incidente asignado exitosamente');
@@ -621,7 +729,7 @@ async function assignIncident(incidentId) {
                 alert(`❌ Error: ${data.error || 'No se pudo asignar'}`);
             }
         } catch (error) {
-            console.error('Assignment error:', error);
+            console.error('❌ Assignment error:', error);
             alert(`❌ Error: ${error.message}`);
         }
     });
@@ -629,6 +737,8 @@ async function assignIncident(incidentId) {
 
 // Get incident by ID
 async function getIncidentById(id) {
+    console.log('🔎 Fetching incident by ID:', id);
+    
     try {
         const response = await fetch(getApiUrl(), {
             method: 'GET',
@@ -638,11 +748,28 @@ async function getIncidentById(id) {
             }
         });
         
+        if (!response.ok) {
+            console.error('❌ Failed to fetch incidents:', response.status);
+            return null;
+        }
+        
         const data = await response.json();
         const incidents = Array.isArray(data) ? data : [];
-        return incidents.find(i => i.id === id);
+        console.log('📋 Total incidents retrieved:', incidents.length);
+        console.log('🔍 Looking for ID:', id);
+        
+        const found = incidents.find(i => i.id === id);
+        
+        if (found) {
+            console.log('✅ Incident found:', found);
+        } else {
+            console.warn('⚠️ Incident NOT found in list');
+            console.log('Available IDs:', incidents.map(i => i.id));
+        }
+        
+        return found;
     } catch (error) {
-        console.error('Error getting incident:', error);
+        console.error('❌ Error getting incident:', error);
         return null;
     }
 }

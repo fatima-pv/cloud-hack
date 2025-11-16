@@ -558,3 +558,34 @@ select:focus {
     color: #dc3545;
     font-weight: bold;
 }
+
+/* Badge para tipo de trabajador requerido */
+.badge-trabajador {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #90caf9;
+}
+
+/* Alert info box */
+.alert-info {
+    background: #e3f2fd;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    border-left: 4px solid #2196F3;
+    color: #0d47a1;
+}
+
+.alert-info strong {
+    color: #1565c0;
+}
+
+.alert-info small {
+    color: #1976d2;
+    font-size: 11px;
+}

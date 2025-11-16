@@ -112,6 +112,12 @@ def lambda_handler(event, context):
         if nivel_riesgo and nivel_riesgo not in niveles_validos:
             nivel_riesgo = ''
         
+        # Validar tipo de trabajador requerido
+        tipo_trabajador_requerido = data.get('tipo_trabajador_requerido', '')
+        tipos_trabajador_validos = ['TI', 'Limpieza', 'Seguridad', 'Electricista']
+        if tipo_trabajador_requerido not in tipos_trabajador_validos:
+            tipo_trabajador_requerido = ''
+        
         item = {
             'id': new_id,
             'titulo': data.get('titulo', ''),
@@ -121,6 +127,7 @@ def lambda_handler(event, context):
             'lugar_especifico': data.get('lugar_especifico', ''),
             'foto': data.get('foto', ''),
             'Nivel_Riesgo': nivel_riesgo,
+            'tipo_trabajador_requerido': tipo_trabajador_requerido,
             'Fecha_creacion': now,
             'estado': 'pendiente',
             'veces_reportado': 1,
