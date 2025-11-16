@@ -87,6 +87,9 @@ def lambda_handler(event, context):
     path = event.get('path', '').rstrip('/')
     
     print(f"[LAMBDA] Received request - Method: {method}, Path: {path}")
+    print(f"[LAMBDA] Path repr: {repr(path)}")
+    print(f"[LAMBDA] Path ends with '/asignar': {path.endswith('/asignar')}")
+    print(f"[LAMBDA] Full event path (no rstrip): {event.get('path', '')}")
     
     # Handle OPTIONS for CORS preflight
     if method == 'OPTIONS':
