@@ -9,10 +9,9 @@ provider:
   # AWS Academy configuration
   profile: default
   
-  # Use the LabRole for AWS Academy
+  # Use the existing LabRole ARN for AWS Academy
   iam:
-    role:
-      name: LabRole
+    role: arn:aws:iam::175670145706:role/LabRole
       
   environment:
     TABLE_NAME: ${self:custom.reportsTableName}
