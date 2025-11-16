@@ -52,6 +52,87 @@ def _get_user_from_request(event):
         return None
 
 
+def _notify_user(user_email, notification_data):
+    """Send notification to specific user via WebSocket"""
+    if not user_email:
+        return
+    
+    try:
+        ws_api_id = os.environ.get('WS_API_ID')
+        ws_stage = os.environ.get('WS_STAGE', 'dev')
+        connections_table = os.environ.get('CONNECTIONS_TABLE', 'ConnectionsTable')
+        
+        if not ws_api_id:
+            print(f"[NOTIFY] WS_API_ID not configured")
+            return
+        
+        endpoint = f"https://{ws_api_id}.execute-api.{os.environ.get('AWS_REGION', 'us-east-1')}.amazonaws.com/{ws_stage}"
+        apigw = boto3.client('apigatewaymanagementapi', endpoint_url=endpoint)
+        
+        con_table = dynamodb.Table(connections_table)
+        resp = con_table.scan()
+        conns = resp.get('Items', [])
+        
+        print(f"[NOTIFY] Sending to user: {user_email}, Total connections: {len(conns)}")
+        
+        sent_count = 0
+        for c in conns:
+            cid = c.get('connectionId')
+            c_email = c.get('userEmail', '')
+            
+            if not cid:
+                continue
+            
+            # Only send to matching user email
+            if c_email.lower() == user_email.lower():
+                try:
+                    print(f"[NOTIFY] Sending to connection {cid} for user {c_email}")
+                    apigw.post_to_connection(
+                        ConnectionId=cid,
+                        Data=json.dumps(notification_data).encode('utf-8')
+                    )
+                    sent_count += 1
+                except apigw.exceptions.GoneException:
+                    print(f"[NOTIFY] Connection {cid} gone, deleting")
+                    con_table.delete_item(Key={'connectionId': cid})
+                except Exception as e:
+                    print(f"[NOTIFY] Error sending to {cid}: {str(e)}")
+        
+        print(f"[NOTIFY] Notification sent to {sent_count} connection(s)")
+        
+    except Exception as e:
+        print(f"[NOTIFY] Error in _notify_user: {str(e)}")
+
+
+def _notify_estado_change(user_email, incidente, old_estado, new_estado):
+    """Notify student about incident status change"""
+    notification = {
+        'action': 'estado_change',
+        'incidente_id': incidente.get('id'),
+        'titulo': incidente.get('titulo'),
+        'old_estado': old_estado,
+        'new_estado': new_estado,
+        'timestamp': datetime.datetime.utcnow().isoformat(),
+        'mensaje': f"El estado de tu incidente '{incidente.get('titulo')}' cambió de {old_estado} a {new_estado}"
+    }
+    _notify_user(user_email, notification)
+
+
+def _notify_asignacion(trabajador_email, incidente):
+    """Notify worker about new assignment"""
+    notification = {
+        'action': 'nueva_asignacion',
+        'incidente_id': incidente.get('id'),
+        'titulo': incidente.get('titulo'),
+        'descripcion': incidente.get('descripcion', ''),
+        'ubicacion': incidente.get('ubicacion', ''),
+        'creado_por': incidente.get('creado_por', ''),
+        'timestamp': datetime.datetime.utcnow().isoformat(),
+        'mensaje': f"Se te ha asignado un nuevo incidente: {incidente.get('titulo')}"
+    }
+    _notify_user(trabajador_email, notification)
+
+
 def _broadcast_to_websockets(item):
     """Broadcast incident to connected WebSocket clients"""
     try:
@@ -228,6 +309,8 @@ def lambda_handler(event, context):
         
         table.put_item(Item=item)
         
+        _notify_asignacion(trabajador_email, item)
+        
         return _resp(200, item)
 
     # UPDATE: PUT /incidentes/{id} (Solo ADMIN)
@@ -256,6 +339,7 @@ def lambda_handler(event, context):
         now = datetime.datetime.utcnow().isoformat()
         
         # Campos editables por admin
+        old_estado = item.get('estado')
         if 'titulo' in data:
             item['titulo'] = data['titulo']
         if 'descripcion' in data:
@@ -275,6 +359,9 @@ def lambda_handler(event, context):
         item['modificado_por'] = current_user.get('email')
         
         table.put_item(Item=item)
+        
+        if 'estado' in data and old_estado != data['estado']:
+            _notify_estado_change(item.get('creado_por'), item, old_estado, data['estado'])
         
         return _resp(200, item)
 

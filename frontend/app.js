@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     displayUserInfo(currentUser);
+    
+    // ✅ Auto-conectar WebSocket para notificaciones en tiempo real
+    setTimeout(() => {
+        connectWebSocket();
+        logWsMessage('🔄 Conectando automáticamente para recibir notificaciones en tiempo real...', 'info');
+    }, 500);
 });
 
 // Get current user from localStorage
@@ -136,7 +142,7 @@ function updateWsStatus(connected) {
     
     if (connected) {
         statusDot.classList.add('connected');
-        statusText.textContent = 'Connected';
+        statusText.textContent = '🔔 Notificaciones Activas';
         connectWsBtn.textContent = 'Disconnect WebSocket';
     } else {
         statusDot.classList.remove('connected');
@@ -153,10 +159,15 @@ function connectWebSocket() {
     }
 
     const wsUrl = getWsUrl();
-    logWsMessage(`Connecting to ${wsUrl}...`, 'info');
+    
+    // ✅ Agregar email del usuario a la URL del WebSocket
+    const userEmail = currentUser ? currentUser.email : '';
+    const wsUrlWithEmail = userEmail ? `${wsUrl}?email=${encodeURIComponent(userEmail)}` : wsUrl;
+    
+    logWsMessage(`Connecting to ${wsUrlWithEmail}...`, 'info');
     
     try {
-        ws = new WebSocket(wsUrl);
+        ws = new WebSocket(wsUrlWithEmail);
         
         ws.onopen = () => {
             logWsMessage('✅ WebSocket connected successfully!', 'success');
@@ -168,6 +179,25 @@ function connectWebSocket() {
             try {
                 const data = JSON.parse(event.data);
                 logWsMessage(`Parsed data: ${JSON.stringify(data, null, 2)}`, 'success');
+                
+                // ✅ Manejar notificaciones de cambio de estado
+                if (data.action === 'estado_change') {
+                    showEstadoChangeNotification(data);
+                    // Recargar incidentes después de 1 segundo
+                    setTimeout(() => {
+                        loadIncidents();
+                    }, 1000);
+                }
+                
+                // ✅ Manejar notificaciones de nueva asignación
+                if (data.action === 'nueva_asignacion') {
+                    showAsignacionNotification(data);
+                    // Recargar incidentes después de 1 segundo
+                    setTimeout(() => {
+                        loadIncidents();
+                    }, 1000);
+                }
+                
             } catch (e) {
                 // Not JSON, just display as is
             }
@@ -181,6 +211,14 @@ function connectWebSocket() {
         ws.onclose = () => {
             logWsMessage('🔌 WebSocket disconnected', 'info');
             updateWsStatus(false);
+            
+            // ✅ Auto-reconectar después de 3 segundos si hay usuario logueado
+            if (currentUser) {
+                setTimeout(() => {
+                    logWsMessage('🔄 Reconectando...', 'info');
+                    connectWebSocket();
+                }, 3000);
+            }
         };
     } catch (error) {
         logWsMessage(`❌ Failed to connect: ${error.message}`, 'error');
@@ -873,6 +911,53 @@ function attachAdminEventListeners() {
             assignIncident(id);
         });
     });
+}
+
+// ✅ Mostrar notificación de cambio de estado
+function showEstadoChangeNotification(data) {
+    const notification = document.createElement('div');
+    notification.className = 'estado-notification';
+    notification.innerHTML = `
+        <div class="notification-icon">📢</div>
+        <div class="notification-content">
+            <h3>Estado Actualizado</h3>
+            <p><strong>Incidente:</strong> ${data.titulo}</p>
+            <p><strong>Cambio:</strong> ${data.old_estado} → ${data.new_estado}</p>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remover después de 8 segundos
+    setTimeout(() => {
+        notification.classList.add('notification-fadeout');
+        setTimeout(() => notification.remove(), 300);
+    }, 8000);
+}
+
+// ✅ Mostrar notificación de nueva asignación
+function showAsignacionNotification(data) {
+    const notification = document.createElement('div');
+    notification.className = 'asignacion-notification';
+    notification.innerHTML = `
+        <div class="notification-icon">🔔</div>
+        <div class="notification-content">
+            <h3>Nueva Tarea Asignada</h3>
+            <p><strong>Incidente:</strong> ${data.titulo}</p>
+            <p><strong>Creado por:</strong> ${data.creado_por}</p>
+            <p><strong>Ubicación:</strong> ${data.ubicacion || 'No especificada'}</p>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remover después de 10 segundos
+    setTimeout(() => {
+        notification.classList.add('notification-fadeout');
+        setTimeout(() => notification.remove(), 300);
+    }, 10000);
 }
 
 // Event listeners
