@@ -399,12 +399,12 @@ function renderFilteredIncidents() {
     // Separar activos y completados
     const activos = allIncidents.filter(inc => {
         const estado = (inc.estado || '').toLowerCase();
-        return estado !== 'resuelto' && estado !== 'completado';
+        return estado !== 'resuelto';
     });
     
     const completados = allIncidents.filter(inc => {
         const estado = (inc.estado || '').toLowerCase();
-        return estado === 'resuelto' || estado === 'completado';
+        return estado === 'resuelto';
     });
     
     // Aplicar filtros a activos
@@ -639,8 +639,7 @@ async function editIncident(incidentId) {
                     <label>Estado:</label>
                     <select id="edit-estado">
                         <option value="pendiente" ${incident.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
-                        <option value="asignado" ${incident.estado === 'asignado' ? 'selected' : ''}>Asignado</option>
-                        <option value="en_proceso" ${incident.estado === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
+                        <option value="en atención" ${incident.estado === 'en atención' ? 'selected' : ''}>En Atención</option>
                         <option value="resuelto" ${incident.estado === 'resuelto' ? 'selected' : ''}>Resuelto</option>
                     </select>
                 </div>
