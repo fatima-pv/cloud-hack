@@ -82,6 +82,56 @@ def _broadcast_to_websockets(item):
         pass
 
 
+def _notify_user_estado_change(user_email, incidente, old_estado, new_estado):
+    """Send notification to specific user about estado change"""
+    try:
+        ws_api_id = os.environ.get('WS_API_ID')
+        ws_stage = os.environ.get('WS_STAGE', 'prod')
+        connections_table = os.environ.get('CONNECTIONS_TABLE', 'ConnectionsTable')
+        
+        if not ws_api_id or not user_email:
+            return
+        
+        endpoint = f"https://{ws_api_id}.execute-api.{os.environ.get('AWS_REGION', 'us-east-1')}.amazonaws.com/{ws_stage}"
+        apigw = boto3.client('apigatewaymanagementapi', endpoint_url=endpoint)
+        
+        con_table = dynamodb.Table(connections_table)
+        resp = con_table.scan()
+        conns = resp.get('Items', [])
+        
+        # Find connections for this specific user
+        for c in conns:
+            cid = c.get('connectionId')
+            conn_email = c.get('userEmail', '')
+            
+            if not cid or conn_email != user_email:
+                continue
+            
+            try:
+                message = {
+                    'action': 'estado_change',
+                    'incidente_id': incidente.get('id'),
+                    'titulo': incidente.get('titulo'),
+                    'old_estado': old_estado,
+                    'new_estado': new_estado,
+                    'timestamp': datetime.datetime.utcnow().isoformat(),
+                    'mensaje': f"Tu incidente '{incidente.get('titulo')}' cambió de estado: {old_estado} → {new_estado}"
+                }
+                
+                apigw.post_to_connection(
+                    ConnectionId=cid,
+                    Data=json.dumps(message).encode('utf-8')
+                )
+            except apigw.exceptions.GoneException:
+                con_table.delete_item(Key={'connectionId': cid})
+            except Exception as e:
+                print(f"Error sending notification: {str(e)}")
+                pass
+    except Exception as e:
+        print(f"Error in _notify_user_estado_change: {str(e)}")
+        pass
+
+
 def lambda_handler(event, context):
     method = event.get('httpMethod')
     path = event.get('path', '').rstrip('/')
@@ -182,6 +232,9 @@ def lambda_handler(event, context):
         except Exception as e:
             return _resp(500, {'error': f'Error al obtener incidente: {str(e)}'})
         
+        # Save old estado to detect changes
+        old_estado = item.get('estado', '')
+        
         # Update fields
         now = datetime.datetime.utcnow().isoformat()
         
@@ -199,7 +252,17 @@ def lambda_handler(event, context):
         if 'Nivel_Riesgo' in data:
             item['Nivel_Riesgo'] = data['Nivel_Riesgo']
         if 'estado' in data:
-            item['estado'] = data['estado']
+            new_estado = data['estado']
+            item['estado'] = new_estado
+            
+            # Si cambió el estado, notificar al usuario que creó el incidente
+            if old_estado != new_estado and item.get('creado_por'):
+                _notify_user_estado_change(
+                    item.get('creado_por'),
+                    item,
+                    old_estado,
+                    new_estado
+                )
         
         item['ultima_modificacion'] = now
         item['modificado_por'] = current_user.get('email')
@@ -246,16 +309,78 @@ def lambda_handler(event, context):
         except Exception as e:
             return _resp(500, {'error': f'Error al obtener incidente: {str(e)}'})
         
-        # Asignar
+        # Save old estado
+        old_estado = item.get('estado', '')
+        
+        # Asignar y cambiar estado a "en atención"
         now = datetime.datetime.utcnow().isoformat()
         item['asignado_a'] = trabajador_email
         item['asignado_a_nombre'] = trabajador.get('nombre')
         item['asignado_a_especialidad'] = trabajador.get('especialidad')
         item['asignado_por'] = current_user.get('email')
         item['fecha_asignacion'] = now
-        item['estado'] = 'asignado'
+        item['estado'] = 'en atención'
         
         table.put_item(Item=item)
+        
+        # Notificar al usuario creador del cambio de estado
+        if item.get('creado_por') and old_estado != 'en atención':
+            _notify_user_estado_change(
+                item.get('creado_por'),
+                item,
+                old_estado,
+                'en atención'
+            )
+        
+        return _resp(200, item)
+
+    # COMPLETE: PUT /incidentes/{id}/completar (TRABAJADOR o ADMIN)
+    if path.endswith('/completar') and method == 'PUT':
+        if not current_user:
+            return _resp(401, {'error': 'No autenticado'})
+        
+        user_tipo = current_user.get('tipo')
+        
+        # Solo trabajador o admin pueden completar
+        if user_tipo not in ['trabajador', 'admin']:
+            return _resp(403, {'error': 'Solo trabajadores o administradores pueden completar incidentes'})
+        
+        incident_id = path.split('/')[-2]
+        
+        # Get incident
+        try:
+            response = table.get_item(Key={'id': incident_id})
+            if 'Item' not in response:
+                return _resp(404, {'error': 'Incidente no encontrado'})
+            
+            item = response['Item']
+        except Exception as e:
+            return _resp(500, {'error': f'Error al obtener incidente: {str(e)}'})
+        
+        # Si es trabajador, verificar que está asignado a él
+        if user_tipo == 'trabajador':
+            if item.get('asignado_a') != current_user.get('email'):
+                return _resp(403, {'error': 'Solo puedes completar incidentes asignados a ti'})
+        
+        # Save old estado
+        old_estado = item.get('estado', '')
+        
+        # Marcar como completado
+        now = datetime.datetime.utcnow().isoformat()
+        item['estado'] = 'completado'
+        item['fecha_completado'] = now
+        item['completado_por'] = current_user.get('email')
+        
+        table.put_item(Item=item)
+        
+        # Notificar al usuario creador del cambio de estado
+        if item.get('creado_por') and old_estado != 'completado':
+            _notify_user_estado_change(
+                item.get('creado_por'),
+                item,
+                old_estado,
+                'completado'
+            )
         
         return _resp(200, item)
 

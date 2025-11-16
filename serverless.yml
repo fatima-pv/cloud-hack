@@ -11,7 +11,7 @@ provider:
   
   # Use the existing LabRole ARN for AWS Academy
   iam:
-    role: arn:aws:iam::520247722169:role/LabRole
+    role: arn:aws:iam::076456812464:role/LabRole
       
   environment:
     TABLE_NAME: ${self:custom.reportsTableName}
@@ -117,6 +117,34 @@ functions:
             allowCredentials: false
       - http:
           path: /incidentes/{id}/asignar
+          method: options
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Email
+            allowCredentials: false
+      - http:
+          path: /incidentes/{id}/completar
+          method: put
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Email
+            allowCredentials: false
+      - http:
+          path: /incidentes/{id}/completar
           method: options
           cors:
             origin: '*'
