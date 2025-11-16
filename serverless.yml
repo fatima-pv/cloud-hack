@@ -1,0 +1,163 @@
+service: cloud-hack-incidentes
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: ${opt:stage, 'dev'}
+  region: us-east-1
+  
+  # AWS Academy configuration
+  profile: default
+  
+  # Use the LabRole for AWS Academy
+  iam:
+    role:
+      name: LabRole
+      
+  environment:
+    TABLE_NAME: ${self:custom.reportsTableName}
+    CONNECTIONS_TABLE: ${self:custom.connectionsTableName}
+    WS_API_ID: !Ref WebsocketsApi
+    WS_STAGE: ${self:provider.stage}
+    AWS_REGION: ${self:provider.region}
+
+custom:
+  reportsTableName: ReportsTable-${self:provider.stage}
+  connectionsTableName: ConnectionsTable-${self:provider.stage}
+
+functions:
+  # REST API Lambda function
+  api:
+    handler: src/app.lambda_handler
+    description: Handle REST API requests for incident reports
+    events:
+      - http:
+          path: /incidentes
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+      - http:
+          path: /incidentes
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+    environment:
+      TABLE_NAME: ${self:custom.reportsTableName}
+      CONNECTIONS_TABLE: ${self:custom.connectionsTableName}
+
+  # WebSocket Connect Lambda
+  wsConnect:
+    handler: src/connect.lambda_handler
+    description: Handle WebSocket connections
+    events:
+      - websocket:
+          route: $connect
+    environment:
+      CONNECTIONS_TABLE: ${self:custom.connectionsTableName}
+
+  # WebSocket Disconnect Lambda
+  wsDisconnect:
+    handler: src/disconnect.lambda_handler
+    description: Handle WebSocket disconnections
+    events:
+      - websocket:
+          route: $disconnect
+    environment:
+      CONNECTIONS_TABLE: ${self:custom.connectionsTableName}
+
+resources:
+  Resources:
+    # DynamoDB Table for Reports/Incidents
+    ReportsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.reportsTableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        Tags:
+          - Key: Name
+            Value: ${self:custom.reportsTableName}
+          - Key: Environment
+            Value: ${self:provider.stage}
+
+    # DynamoDB Table for WebSocket Connections
+    ConnectionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.connectionsTableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+        Tags:
+          - Key: Name
+            Value: ${self:custom.connectionsTableName}
+          - Key: Environment
+            Value: ${self:provider.stage}
+
+  Outputs:
+    # REST API Endpoint
+    RestApiUrl:
+      Description: REST API endpoint URL
+      Value:
+        Fn::Sub: https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${self:provider.stage}
+      Export:
+        Name: ${self:service}-${self:provider.stage}-rest-api-url
+
+    # WebSocket API Endpoint
+    WebSocketUrl:
+      Description: WebSocket API endpoint URL
+      Value:
+        Fn::Sub: wss://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/${self:provider.stage}
+      Export:
+        Name: ${self:service}-${self:provider.stage}-ws-api-url
+
+    # DynamoDB Tables
+    ReportsTableName:
+      Description: DynamoDB table for incident reports
+      Value: ${self:custom.reportsTableName}
+      Export:
+        Name: ${self:service}-${self:provider.stage}-reports-table
+
+    ConnectionsTableName:
+      Description: DynamoDB table for WebSocket connections
+      Value: ${self:custom.connectionsTableName}
+      Export:
+        Name: ${self:service}-${self:provider.stage}-connections-table
+
+package:
+  patterns:
+    - '!.git/**'
+    - '!.gitignore'
+    - '!.vscode/**'
+    - '!node_modules/**'
+    - '!__pycache__/**'
+    - '!*.pyc'
+    - '!venv/**'
+    - '!.env'
