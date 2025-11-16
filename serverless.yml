@@ -6,32 +6,27 @@ provider:
   runtime: python3.9
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
-  # Set an explicit execution role for the Lambdas. Replace the placeholder role name below
-  # with your AWS Academy lab role name.
-  iam:
-    role: arn:aws:iam::640145907648:role/LabRole
   environment:
     TABLE_NAME: ReportsTable
     CONNECTIONS_TABLE: ConnectionsTable
     WS_STAGE: prod
-  iam:
-    role:
-      statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:PutItem
-            - dynamodb:GetItem
-            - dynamodb:Scan
-            - dynamodb:DeleteItem
-            - dynamodb:UpdateItem
-          Resource:
-            - arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/ReportsTable
-            - arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/ConnectionsTable
-        - Effect: Allow
-          Action:
-            - execute-api:ManageConnections
-          Resource:
-            Fn::Sub: "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebsocketsApi}/*/*"
+  role: arn:aws:iam::640145907648:role/LabRole
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:Scan
+        - dynamodb:DeleteItem
+        - dynamodb:UpdateItem
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/ReportsTable
+        - arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/ConnectionsTable
+    - Effect: Allow
+      Action:
+        - execute-api:ManageConnections
+      Resource:
+        - arn:aws:execute-api:${self:provider.region}:${aws:accountId}:*/*
 
 functions:
   reports:
@@ -47,12 +42,14 @@ functions:
   connect:
     handler: src/connect.lambda_handler
     events:
-      - websocket: $connect
+      - websocket:
+          route: $connect
 
   disconnect:
     handler: src/disconnect.lambda_handler
     events:
-      - websocket: $disconnect
+      - websocket:
+          route: $disconnect
 
 resources:
   Resources:
@@ -81,9 +78,6 @@ resources:
             KeyType: HASH
 
   Outputs:
-    WebsocketsApi:
-      Description: WebSocket API Id
-      Value:
-        Ref: WebsocketsApi
-      Export:
-        Name: ${self:service}-${self:provider.stage}-WebsocketsApi
+    # Removed WebsocketsApi output because the logical resource name was not defined
+    # If you need to export the WebSocket API id, define the Api resource explicitly and
+    # reference it here. Leaving Outputs empty for now.
