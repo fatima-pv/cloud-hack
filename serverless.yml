@@ -43,6 +43,7 @@ functions:
               - X-Api-Key
               - X-Amz-Security-Token
               - X-Amz-User-Agent
+              - X-User-Email
             allowCredentials: false
       - http:
           path: /incidentes
@@ -56,6 +57,7 @@ functions:
               - X-Api-Key
               - X-Amz-Security-Token
               - X-Amz-User-Agent
+              - X-User-Email
             allowCredentials: false
       - http:
           path: /incidentes
@@ -69,6 +71,63 @@ functions:
               - X-Api-Key
               - X-Amz-Security-Token
               - X-Amz-User-Agent
+              - X-User-Email
+            allowCredentials: false
+      - http:
+          path: /incidentes/{id}
+          method: put
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Email
+            allowCredentials: false
+      - http:
+          path: /incidentes/{id}
+          method: options
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Email
+            allowCredentials: false
+      - http:
+          path: /incidentes/{id}/asignar
+          method: put
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Email
+            allowCredentials: false
+      - http:
+          path: /incidentes/{id}/asignar
+          method: options
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Email
             allowCredentials: false
     environment:
       TABLE_NAME: ${self:custom.reportsTableName}
@@ -150,6 +209,42 @@ functions:
               - X-Api-Key
               - X-Amz-Security-Token
               - X-Amz-User-Agent
+            allowCredentials: false
+    environment:
+      USERS_TABLE: ${self:custom.usersTableName}
+
+  # Users Lambda (List users - Admin only)
+  users:
+    handler: src/users.lambda_handler
+    description: List users (admin only)
+    events:
+      - http:
+          path: /users
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Email
+            allowCredentials: false
+      - http:
+          path: /users
+          method: options
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Email
             allowCredentials: false
     environment:
       USERS_TABLE: ${self:custom.usersTableName}

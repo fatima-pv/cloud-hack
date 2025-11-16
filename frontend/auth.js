@@ -1,5 +1,5 @@
 // Configuration - Update these URLs after deployment
-const API_BASE_URL = 'https://YOUR_API_GATEWAY_URL/dev';
+const API_BASE_URL = 'https://eb28n1jcdh.execute-api.us-east-1.amazonaws.com/dev';
 
 // Get stored user data
 function getCurrentUser() {
