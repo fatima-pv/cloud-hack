@@ -16,25 +16,12 @@ provider:
     CONNECTIONS_TABLE: ConnectionsTable
     WS_STAGE: ${self:provider.stage}
 
-  # Minimal IAM permissions used by lambdas
-  iam:
-    role:
-      statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:PutItem
-            - dynamodb:DeleteItem
-            - dynamodb:GetItem
-            - dynamodb:Scan
-            - dynamodb:Query
-            - dynamodb:UpdateItem
-          Resource:
-            - arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/ReportsTable
-            - arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/ConnectionsTable
-        - Effect: Allow
-          Action:
-            - execute-api:ManageConnections
-          Resource: arn:aws:execute-api:${self:provider.region}:${aws:accountId}:*/*
+  # NOTE: avoid creating new IAM roles on deploy. If the LabRole used below
+  # does not have the required permissions (dynamodb & execute-api:ManageConnections),
+  # ask the admins to attach appropriate policies to it or provide a role with the
+  # IAM privileges needed. Removing inline `iam` statements prevents CloudFormation
+  # from trying to create roles which requires the deploying principal to have
+  # iam:CreateRole and tag permissions.
 
 plugins:
   - serverless-python-requirements

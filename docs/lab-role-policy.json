@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:GetItem",
+        "dynamodb:Scan",
+        "dynamodb:Query",
+        "dynamodb:UpdateItem"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:us-east-1:175670145706:table/ReportsTable",
+        "arn:aws:dynamodb:us-east-1:175670145706:table/ConnectionsTable"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "execute-api:ManageConnections"
+      ],
+      "Resource": "arn:aws:execute-api:us-east-1:175670145706:*/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:us-east-1:175670145706:log-group:/aws/lambda/*"
+    }
+  ]
+}
