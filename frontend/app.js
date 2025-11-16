@@ -473,13 +473,17 @@ async function assignIncident(incidentId) {
     const workers = await getWorkers();
     const allIncidents = await getAllIncidentsForAdmin();
     
+    console.log('Workers loaded:', workers);
+    console.log('All incidents:', allIncidents);
+    
     if (workers.length === 0) {
         alert('No hay trabajadores registrados en el sistema');
         return;
     }
     
-    // Get unique especialidades
+    // Get unique especialidades (including workers without especialidad)
     const especialidades = [...new Set(workers.map(w => w.especialidad).filter(e => e))];
+    console.log('Unique especialidades:', especialidades);
     
     // Calculate worker availability
     const workersWithStatus = workers.map(worker => {
@@ -496,6 +500,8 @@ async function assignIncident(incidentId) {
             activeIncidentsCount: activeIncidents.length
         };
     });
+    
+    console.log('Workers with status:', workersWithStatus);
     
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -538,22 +544,33 @@ async function assignIncident(incidentId) {
             ? workersWithStatus.filter(w => w.especialidad === filterEspecialidad)
             : workersWithStatus;
         
+        console.log('Filtering by:', filterEspecialidad);
+        console.log('Filtered workers:', filteredWorkers);
+        
         workerSelect.innerHTML = '<option value="">-- Selecciona un trabajador --</option>';
         
+        if (filteredWorkers.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No hay trabajadores con esta especialidad';
+            option.disabled = true;
+            workerSelect.appendChild(option);
+            return;
+        }
+        
         filteredWorkers.forEach(w => {
-            const especialidadText = w.especialidad ? ` - ${w.especialidad}` : '';
+            const especialidadText = w.especialidad ? ` - ${w.especialidad}` : ' - Sin especialidad';
             const statusIcon = w.isAvailable ? '🟢' : '🔴';
             const statusText = w.isAvailable ? 'Disponible' : `Ocupado (${w.activeIncidentsCount} incidente${w.activeIncidentsCount > 1 ? 's' : ''})`;
             
             const option = document.createElement('option');
             option.value = w.email;
-            option.textContent = `${statusIcon} ${w.nombre} ${especialidadText} - ${statusText}`;
-            
-            // Optionally disable occupied workers (remove this if you want admins to still be able to assign)
-            // option.disabled = !w.isAvailable;
+            option.textContent = `${statusIcon} ${w.nombre}${especialidadText} - ${statusText}`;
             
             workerSelect.appendChild(option);
         });
+        
+        console.log('Worker select populated with', filteredWorkers.length, 'workers');
     }
     
     // Initial population
@@ -561,18 +578,26 @@ async function assignIncident(incidentId) {
     
     // Update workers when filter changes
     especialidadFilter.addEventListener('change', (e) => {
+        console.log('Filter changed to:', e.target.value);
         populateWorkers(e.target.value);
     });
     
-    document.getElementById('assignForm').addEventListener('submit', async (e) => {
+    const assignForm = document.getElementById('assignForm');
+    console.log('Assign form found:', assignForm);
+    
+    assignForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        console.log('Form submitted!');
         
         const trabajadorEmail = document.getElementById('worker-select').value;
+        console.log('Selected worker:', trabajadorEmail);
         
         if (!trabajadorEmail) {
             alert('Por favor selecciona un trabajador');
             return;
         }
+        
+        console.log('Attempting to assign to:', trabajadorEmail);
         
         try {
             const response = await fetch(`${getApiUrl()}/${incidentId}/asignar`, {
@@ -585,6 +610,7 @@ async function assignIncident(incidentId) {
             });
             
             const data = await response.json();
+            console.log('Assignment response:', data);
             
             if (response.ok) {
                 alert('✅ Incidente asignado exitosamente');
@@ -594,6 +620,7 @@ async function assignIncident(incidentId) {
                 alert(`❌ Error: ${data.error || 'No se pudo asignar'}`);
             }
         } catch (error) {
+            console.error('Assignment error:', error);
             alert(`❌ Error: ${error.message}`);
         }
     });
