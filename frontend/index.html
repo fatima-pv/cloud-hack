@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Hack - Incident Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚨 Incident Management System</h1>
+            <div class="connection-status" id="wsStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Disconnected</span>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Panel - Create Incident -->
+            <div class="panel">
+                <h2>📝 Create New Incident</h2>
+                <form id="incidentForm">
+                    <div class="form-group">
+                        <label for="titulo">Título (Title):</label>
+                        <input type="text" id="titulo" name="titulo" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="descripcion">Descripción (Description):</label>
+                        <textarea id="descripcion" name="descripcion" rows="3" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tipo">Tipo (Type):</label>
+                        <input type="text" id="tipo" name="tipo" placeholder="e.g., Eléctrico, Plomería, Estructural">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="piso">Piso (Floor):</label>
+                        <input type="text" id="piso" name="piso" placeholder="e.g., 1, 2, 3">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lugar_especifico">Lugar Específico (Specific Location):</label>
+                        <input type="text" id="lugar_especifico" name="lugar_especifico" placeholder="e.g., Sala 101, Baño Principal">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="foto">Foto URL (Photo URL):</label>
+                        <input type="text" id="foto" name="foto" placeholder="https://example.com/photo.jpg">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Submit Incident</button>
+                </form>
+                
+                <div id="submitResult" class="result"></div>
+            </div>
+
+            <!-- Right Panel - View Incidents -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📋 All Incidents</h2>
+                    <button id="refreshBtn" class="btn btn-secondary">🔄 Refresh</button>
+                </div>
+                <div id="incidentsList" class="incidents-list">
+                    <p class="loading">Click refresh to load incidents...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- WebSocket Messages Panel -->
+        <div class="panel ws-panel">
+            <div class="panel-header">
+                <h2>💬 WebSocket Messages (Real-time Updates)</h2>
+                <button id="connectWsBtn" class="btn btn-secondary">Connect WebSocket</button>
+                <button id="clearLogsBtn" class="btn btn-secondary">Clear Logs</button>
+            </div>
+            <div id="wsMessages" class="ws-messages">
+                <p class="info">Click "Connect WebSocket" to start receiving real-time updates...</p>
+            </div>
+        </div>
+
+        <!-- API Configuration -->
+        <div class="panel config-panel">
+            <h3>⚙️ API Configuration</h3>
+            <div class="form-group">
+                <label for="apiUrl">REST API URL:</label>
+                <input type="text" id="apiUrl" value="https://lw14n0auoh.execute-api.us-east-1.amazonaws.com/prod/incidentes">
+            </div>
+            <div class="form-group">
+                <label for="wsUrl">WebSocket URL:</label>
+                <input type="text" id="wsUrl" value="wss://1l16i22jel.execute-api.us-east-1.amazonaws.com/prod">
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
