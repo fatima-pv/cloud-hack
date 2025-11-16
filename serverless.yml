@@ -18,7 +18,6 @@ provider:
     CONNECTIONS_TABLE: ${self:custom.connectionsTableName}
     WS_API_ID: !Ref WebsocketsApi
     WS_STAGE: ${self:provider.stage}
-    AWS_REGION: ${self:provider.region}
 
 custom:
   reportsTableName: ReportsTable-${self:provider.stage}
