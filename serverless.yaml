@@ -86,6 +86,6 @@ package:
   include:
     - src/**
 
-plugins:
-  - serverless-python-requirements</content>
+# plugins:
+#   - serverless-python-requirements</content>
 <parameter name="filePath">c:\Users\vvalen\Desktop\6hd\Utec\2025-2\cloud\cloud-hack\serverless.yaml
