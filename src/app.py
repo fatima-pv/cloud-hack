@@ -172,57 +172,8 @@ def lambda_handler(event, context):
         
         return _resp(200, items)
 
-    # UPDATE: PUT /incidentes/{id} (Solo ADMIN)
-    if path.startswith('/incidentes/') and method == 'PUT':
-        if not current_user:
-            return _resp(401, {'error': 'No autenticado'})
-        
-        # Solo admin puede editar
-        if current_user.get('tipo') != 'admin':
-            return _resp(403, {'error': 'Solo administradores pueden editar incidentes'})
-        
-        incident_id = path.split('/')[-1]
-        data = _parse_body(event)
-        
-        # Get existing item
-        try:
-            response = table.get_item(Key={'id': incident_id})
-            if 'Item' not in response:
-                return _resp(404, {'error': 'Incidente no encontrado'})
-            
-            item = response['Item']
-        except Exception as e:
-            return _resp(500, {'error': f'Error al obtener incidente: {str(e)}'})
-        
-        # Update fields
-        now = datetime.datetime.utcnow().isoformat()
-        
-        # Campos editables por admin
-        if 'titulo' in data:
-            item['titulo'] = data['titulo']
-        if 'descripcion' in data:
-            item['descripcion'] = data['descripcion']
-        if 'tipo' in data:
-            item['tipo'] = data['tipo']
-        if 'piso' in data:
-            item['piso'] = data['piso']
-        if 'lugar_especifico' in data:
-            item['lugar_especifico'] = data['lugar_especifico']
-        if 'Nivel_Riesgo' in data:
-            item['Nivel_Riesgo'] = data['Nivel_Riesgo']
-        if 'estado' in data:
-            item['estado'] = data['estado']
-        
-        item['ultima_modificacion'] = now
-        item['modificado_por'] = current_user.get('email')
-        
-        table.put_item(Item=item)
-        
-        return _resp(200, item)
-
     # ASSIGN: PUT /incidentes/{id}/asignar (Solo ADMIN)
-    print(f"[DEBUG] Checking assign route - path.endswith('/asignar'): {path.endswith('/asignar')}, method=='PUT': {method == 'PUT'}")
-    
+    # IMPORTANTE: Este check debe ir ANTES del UPDATE genérico para que no lo capture
     if path.endswith('/asignar') and method == 'PUT':
         print(f"[ASSIGN] Path: {path}, Method: {method}")
         
@@ -274,6 +225,54 @@ def lambda_handler(event, context):
         item['asignado_por'] = current_user.get('email')
         item['fecha_asignacion'] = now
         item['estado'] = 'asignado'
+        
+        table.put_item(Item=item)
+        
+        return _resp(200, item)
+
+    # UPDATE: PUT /incidentes/{id} (Solo ADMIN)
+    if path.startswith('/incidentes/') and method == 'PUT':
+        if not current_user:
+            return _resp(401, {'error': 'No autenticado'})
+        
+        # Solo admin puede editar
+        if current_user.get('tipo') != 'admin':
+            return _resp(403, {'error': 'Solo administradores pueden editar incidentes'})
+        
+        incident_id = path.split('/')[-1]
+        data = _parse_body(event)
+        
+        # Get existing item
+        try:
+            response = table.get_item(Key={'id': incident_id})
+            if 'Item' not in response:
+                return _resp(404, {'error': 'Incidente no encontrado'})
+            
+            item = response['Item']
+        except Exception as e:
+            return _resp(500, {'error': f'Error al obtener incidente: {str(e)}'})
+        
+        # Update fields
+        now = datetime.datetime.utcnow().isoformat()
+        
+        # Campos editables por admin
+        if 'titulo' in data:
+            item['titulo'] = data['titulo']
+        if 'descripcion' in data:
+            item['descripcion'] = data['descripcion']
+        if 'tipo' in data:
+            item['tipo'] = data['tipo']
+        if 'piso' in data:
+            item['piso'] = data['piso']
+        if 'lugar_especifico' in data:
+            item['lugar_especifico'] = data['lugar_especifico']
+        if 'Nivel_Riesgo' in data:
+            item['Nivel_Riesgo'] = data['Nivel_Riesgo']
+        if 'estado' in data:
+            item['estado'] = data['estado']
+        
+        item['ultima_modificacion'] = now
+        item['modificado_por'] = current_user.get('email')
         
         table.put_item(Item=item)
         
