@@ -410,6 +410,54 @@ select:focus {
     transform: translateY(-1px);
 }
 
+.btn-close {
+    background: #f44336;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-close:hover {
+    background: #d32f2f;
+    transform: translateY(-1px);
+}
+
+.btn-start {
+    background: #2196F3;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-start:hover {
+    background: #1976D2;
+    transform: translateY(-1px);
+}
+
+.btn-finish {
+    background: #4CAF50;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-finish:hover {
+    background: #388E3C;
+    transform: translateY(-1px);
+}
+
 /* Estado Badges */
 .badge-estado {
     display: inline-block;
@@ -438,6 +486,16 @@ select:focus {
 .estado-resuelto {
     background: #D4EDDA;
     color: #155724;
+}
+
+.estado-cerrado {
+    background: #6c757d;
+    color: white;
+}
+
+.estado-reportado {
+    background: #fff3cd;
+    color: #856404;
 }
 
 /* Modal */
@@ -619,6 +677,10 @@ select:focus {
 
 .asignacion-notification {
     border-left-color: #FF9800;
+}
+
+.trabajador-notification {
+    border-left-color: #2196F3;
 }
 
 .notification-icon {

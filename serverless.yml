@@ -129,6 +129,35 @@ functions:
               - X-Amz-User-Agent
               - X-User-Email
             allowCredentials: false
+      # Worker update status endpoint
+      - http:
+          path: /incidentes/{id}/estado
+          method: put
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Email
+            allowCredentials: false
+      - http:
+          path: /incidentes/{id}/estado
+          method: options
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-User-Email
+            allowCredentials: false
     environment:
       TABLE_NAME: ${self:custom.reportsTableName}
       CONNECTIONS_TABLE: ${self:custom.connectionsTableName}

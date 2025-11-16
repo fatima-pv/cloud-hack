@@ -133,6 +133,35 @@ def _notify_asignacion(trabajador_email, incidente):
     _notify_user(trabajador_email, notification)
 
 
+def _notify_admin_trabajador_update(incidente, new_estado, trabajador_email):
+    """Notify admin when worker updates incident status (en_proceso or resuelto)"""
+    # Get all admin users
+    try:
+        response = users_table.scan(
+            FilterExpression='tipo = :tipo',
+            ExpressionAttributeValues={':tipo': 'admin'}
+        )
+        admins = response.get('Items', [])
+        
+        notification = {
+            'action': 'trabajador_update',
+            'incidente_id': incidente.get('id'),
+            'titulo': incidente.get('titulo'),
+            'new_estado': new_estado,
+            'trabajador_email': trabajador_email,
+            'timestamp': datetime.datetime.utcnow().isoformat(),
+            'mensaje': f"Trabajador actualizó incidente '{incidente.get('titulo')}' a {new_estado}"
+        }
+        
+        for admin in admins:
+            admin_email = admin.get('email')
+            if admin_email:
+                _notify_user(admin_email, notification)
+                
+    except Exception as e:
+        print(f"[NOTIFY] Error notifying admins: {str(e)}")
+
+
 def _broadcast_to_websockets(item):
     """Broadcast incident to connected WebSocket clients"""
     try:
@@ -354,6 +383,10 @@ def lambda_handler(event, context):
             item['Nivel_Riesgo'] = data['Nivel_Riesgo']
         if 'estado' in data:
             item['estado'] = data['estado']
+            # Si admin cierra directamente, marcar fecha de cierre
+            if data['estado'] == 'cerrado':
+                item['fecha_cierre'] = now
+                item['cerrado_por'] = current_user.get('email')
         
         item['ultima_modificacion'] = now
         item['modificado_por'] = current_user.get('email')
@@ -362,6 +395,60 @@ def lambda_handler(event, context):
         
         if 'estado' in data and old_estado != data['estado']:
             _notify_estado_change(item.get('creado_por'), item, old_estado, data['estado'])
+        
+        return _resp(200, item)
+
+    # WORKER UPDATE STATUS: PUT /incidentes/{id}/estado (Solo TRABAJADOR asignado)
+    if path.endswith('/estado') and method == 'PUT':
+        if not current_user:
+            return _resp(401, {'error': 'No autenticado'})
+        
+        # Solo trabajadores pueden usar este endpoint
+        if current_user.get('tipo') != 'trabajador':
+            return _resp(403, {'error': 'Solo trabajadores pueden actualizar su estado'})
+        
+        incident_id = path.split('/')[-2]
+        data = _parse_body(event)
+        new_estado = data.get('estado')
+        
+        # Validar que el estado sea válido para trabajadores
+        if new_estado not in ['en_proceso', 'resuelto']:
+            return _resp(400, {'error': 'Estado inválido. Solo permitido: en_proceso, resuelto'})
+        
+        # Get incident
+        try:
+            response = table.get_item(Key={'id': incident_id})
+            if 'Item' not in response:
+                return _resp(404, {'error': 'Incidente no encontrado'})
+            
+            item = response['Item']
+        except Exception as e:
+            return _resp(500, {'error': f'Error al obtener incidente: {str(e)}'})
+        
+        # Verificar que el incidente está asignado a este trabajador
+        if item.get('asignado_a') != current_user.get('email'):
+            return _resp(403, {'error': 'Este incidente no está asignado a ti'})
+        
+        # Update status
+        old_estado = item.get('estado')
+        now = datetime.datetime.utcnow().isoformat()
+        item['estado'] = new_estado
+        item['ultima_modificacion'] = now
+        item['modificado_por'] = current_user.get('email')
+        
+        if new_estado == 'en_proceso':
+            item['fecha_inicio'] = now
+        elif new_estado == 'resuelto':
+            item['fecha_resolucion'] = now
+        
+        table.put_item(Item=item)
+        
+        # Notify student about status change
+        if item.get('creado_por'):
+            _notify_estado_change(item.get('creado_por'), item, old_estado, new_estado)
+        
+        # Notify admin about worker update
+        _notify_admin_trabajador_update(item, new_estado, current_user.get('email'))
         
         return _resp(200, item)
 

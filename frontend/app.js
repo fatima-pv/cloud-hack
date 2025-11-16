@@ -198,6 +198,15 @@ function connectWebSocket() {
                     }, 1000);
                 }
                 
+                // ✅ Manejar notificaciones de actualización de trabajador (para admin)
+                if (data.action === 'trabajador_update') {
+                    showTrabajadorUpdateNotification(data);
+                    // Recargar incidentes después de 1 segundo
+                    setTimeout(() => {
+                        loadIncidents();
+                    }, 1000);
+                }
+                
             } catch (e) {
                 // Not JSON, just display as is
             }
@@ -398,6 +407,18 @@ function renderIncidentCard(incident) {
             <div class="incident-actions">
                 <button class="btn-edit" data-id="${incident.id}">✏️ Editar</button>
                 <button class="btn-assign" data-id="${incident.id}">👤 Asignar</button>
+                <button class="btn-close" data-id="${incident.id}">🚫 Cerrar</button>
+            </div>
+        `;
+    } else if (isTrabajador && incident.asignado_a === currentUser.email) {
+        // Mostrar botones solo si el incidente está asignado a este trabajador
+        const isAsignado = incident.estado === 'asignado';
+        const isEnProceso = incident.estado === 'en_proceso';
+        
+        actionButtons = `
+            <div class="incident-actions">
+                ${isAsignado ? `<button class="btn-start" data-id="${incident.id}">▶️ Iniciar Tarea</button>` : ''}
+                ${isEnProceso ? `<button class="btn-finish" data-id="${incident.id}">✅ Marcar Resuelto</button>` : ''}
             </div>
         `;
     }
@@ -464,10 +485,12 @@ async function editIncident(incidentId) {
                 <div class="form-group">
                     <label>Estado:</label>
                     <select id="edit-estado">
+                        <option value="reportado" ${incident.estado === 'reportado' ? 'selected' : ''}>Reportado</option>
                         <option value="pendiente" ${incident.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
                         <option value="asignado" ${incident.estado === 'asignado' ? 'selected' : ''}>Asignado</option>
                         <option value="en_proceso" ${incident.estado === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
                         <option value="resuelto" ${incident.estado === 'resuelto' ? 'selected' : ''}>Resuelto</option>
+                        <option value="cerrado" ${incident.estado === 'cerrado' ? 'selected' : ''}>Cerrado</option>
                     </select>
                 </div>
                 <div class="modal-actions">
@@ -529,6 +552,96 @@ async function editIncident(incidentId) {
             alert(`❌ Error: ${error.message}`);
         }
     });
+}
+
+// ✅ Admin: Cerrar incidente directamente
+async function closeIncident(incidentId) {
+    if (!confirm('⚠️ ¿Estás seguro de que quieres cerrar este incidente? Esta acción notificará al estudiante.')) {
+        return;
+    }
+    
+    try {
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/${incidentId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Email': currentUser.email
+            },
+            body: JSON.stringify({ estado: 'cerrado' })
+        });
+        
+        if (response.ok) {
+            alert('✅ Incidente cerrado exitosamente');
+            loadIncidents();
+        } else {
+            const data = await response.json();
+            alert(`❌ Error: ${data.error || 'No se pudo cerrar'}`);
+        }
+    } catch (error) {
+        console.error('❌ Close error:', error);
+        alert(`❌ Error: ${error.message}`);
+    }
+}
+
+// ✅ Trabajador: Iniciar tarea (cambiar a en_proceso)
+async function startTask(incidentId) {
+    if (!confirm('¿Deseas marcar que has iniciado esta tarea?')) {
+        return;
+    }
+    
+    try {
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/${incidentId}/estado`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Email': currentUser.email
+            },
+            body: JSON.stringify({ estado: 'en_proceso' })
+        });
+        
+        if (response.ok) {
+            alert('✅ Tarea marcada como iniciada');
+            loadIncidents();
+        } else {
+            const data = await response.json();
+            alert(`❌ Error: ${data.error || 'No se pudo actualizar'}`);
+        }
+    } catch (error) {
+        console.error('❌ Start task error:', error);
+        alert(`❌ Error: ${error.message}`);
+    }
+}
+
+// ✅ Trabajador: Marcar tarea como resuelta
+async function finishTask(incidentId) {
+    if (!confirm('¿Deseas marcar esta tarea como resuelta?')) {
+        return;
+    }
+    
+    try {
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/${incidentId}/estado`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Email': currentUser.email
+            },
+            body: JSON.stringify({ estado: 'resuelto' })
+        });
+        
+        if (response.ok) {
+            alert('✅ Tarea marcada como resuelta');
+            loadIncidents();
+        } else {
+            const data = await response.json();
+            alert(`❌ Error: ${data.error || 'No se pudo actualizar'}`);
+        }
+    } catch (error) {
+        console.error('❌ Finish task error:', error);
+        alert(`❌ Error: ${error.message}`);
+    }
 }
 
 // Admin: Assign incident to worker
@@ -911,6 +1024,28 @@ function attachAdminEventListeners() {
             assignIncident(id);
         });
     });
+    
+    document.querySelectorAll('.btn-close').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.target.getAttribute('data-id');
+            closeIncident(id);
+        });
+    });
+    
+    // Event listeners para botones de trabajador
+    document.querySelectorAll('.btn-start').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.target.getAttribute('data-id');
+            startTask(id);
+        });
+    });
+    
+    document.querySelectorAll('.btn-finish').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.target.getAttribute('data-id');
+            finishTask(id);
+        });
+    });
 }
 
 // ✅ Mostrar notificación de cambio de estado
@@ -958,6 +1093,30 @@ function showAsignacionNotification(data) {
         notification.classList.add('notification-fadeout');
         setTimeout(() => notification.remove(), 300);
     }, 10000);
+}
+
+// ✅ Mostrar notificación de actualización de trabajador (para admin)
+function showTrabajadorUpdateNotification(data) {
+    const notification = document.createElement('div');
+    notification.className = 'trabajador-notification';
+    notification.innerHTML = `
+        <div class="notification-icon">👷</div>
+        <div class="notification-content">
+            <h3>Actualización de Trabajador</h3>
+            <p><strong>Incidente:</strong> ${data.titulo}</p>
+            <p><strong>Nuevo estado:</strong> ${data.new_estado}</p>
+            <p><strong>Trabajador:</strong> ${data.trabajador_email}</p>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remover después de 8 segundos
+    setTimeout(() => {
+        notification.classList.add('notification-fadeout');
+        setTimeout(() => notification.remove(), 300);
+    }, 8000);
 }
 
 // Event listeners
