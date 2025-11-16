@@ -348,6 +348,61 @@ def lambda_handler(event, context):
         
         return _resp(200, item)
 
+    # WORKER UPDATE STATUS: PUT /incidentes/{id}/estado (Solo TRABAJADOR asignado)
+    # ⚠️ IMPORTANTE: Este check debe ir ANTES del UPDATE genérico para que no lo capture
+    if path.endswith('/estado') and method == 'PUT':
+        if not current_user:
+            return _resp(401, {'error': 'No autenticado'})
+        
+        # Solo trabajadores pueden usar este endpoint
+        if current_user.get('tipo') != 'trabajador':
+            return _resp(403, {'error': 'Solo trabajadores pueden actualizar su estado'})
+        
+        incident_id = path.split('/')[-2]
+        data = _parse_body(event)
+        new_estado = data.get('estado')
+        
+        # Validar que el estado sea válido para trabajadores
+        if new_estado not in ['en_proceso', 'resuelto']:
+            return _resp(400, {'error': 'Estado inválido. Solo permitido: en_proceso, resuelto'})
+        
+        # Get incident
+        try:
+            response = table.get_item(Key={'id': incident_id})
+            if 'Item' not in response:
+                return _resp(404, {'error': 'Incidente no encontrado'})
+            
+            item = response['Item']
+        except Exception as e:
+            return _resp(500, {'error': f'Error al obtener incidente: {str(e)}'})
+        
+        # Verificar que el incidente está asignado a este trabajador
+        if item.get('asignado_a') != current_user.get('email'):
+            return _resp(403, {'error': 'Este incidente no está asignado a ti'})
+        
+        # Update status
+        old_estado = item.get('estado')
+        now = datetime.datetime.utcnow().isoformat()
+        item['estado'] = new_estado
+        item['ultima_modificacion'] = now
+        item['modificado_por'] = current_user.get('email')
+        
+        if new_estado == 'en_proceso':
+            item['fecha_inicio'] = now
+        elif new_estado == 'resuelto':
+            item['fecha_resolucion'] = now
+        
+        table.put_item(Item=item)
+        
+        # Notify student about status change
+        if item.get('creado_por'):
+            _notify_estado_change(item.get('creado_por'), item, old_estado, new_estado)
+        
+        # Notify admin about worker update
+        _notify_admin_trabajador_update(item, new_estado, current_user.get('email'))
+        
+        return _resp(200, item)
+
     # UPDATE: PUT /incidentes/{id} (Solo ADMIN)
     if path.startswith('/incidentes/') and method == 'PUT':
         if not current_user:
@@ -401,60 +456,6 @@ def lambda_handler(event, context):
         
         if 'estado' in data and old_estado != data['estado']:
             _notify_estado_change(item.get('creado_por'), item, old_estado, data['estado'])
-        
-        return _resp(200, item)
-
-    # WORKER UPDATE STATUS: PUT /incidentes/{id}/estado (Solo TRABAJADOR asignado)
-    if path.endswith('/estado') and method == 'PUT':
-        if not current_user:
-            return _resp(401, {'error': 'No autenticado'})
-        
-        # Solo trabajadores pueden usar este endpoint
-        if current_user.get('tipo') != 'trabajador':
-            return _resp(403, {'error': 'Solo trabajadores pueden actualizar su estado'})
-        
-        incident_id = path.split('/')[-2]
-        data = _parse_body(event)
-        new_estado = data.get('estado')
-        
-        # Validar que el estado sea válido para trabajadores
-        if new_estado not in ['en_proceso', 'resuelto']:
-            return _resp(400, {'error': 'Estado inválido. Solo permitido: en_proceso, resuelto'})
-        
-        # Get incident
-        try:
-            response = table.get_item(Key={'id': incident_id})
-            if 'Item' not in response:
-                return _resp(404, {'error': 'Incidente no encontrado'})
-            
-            item = response['Item']
-        except Exception as e:
-            return _resp(500, {'error': f'Error al obtener incidente: {str(e)}'})
-        
-        # Verificar que el incidente está asignado a este trabajador
-        if item.get('asignado_a') != current_user.get('email'):
-            return _resp(403, {'error': 'Este incidente no está asignado a ti'})
-        
-        # Update status
-        old_estado = item.get('estado')
-        now = datetime.datetime.utcnow().isoformat()
-        item['estado'] = new_estado
-        item['ultima_modificacion'] = now
-        item['modificado_por'] = current_user.get('email')
-        
-        if new_estado == 'en_proceso':
-            item['fecha_inicio'] = now
-        elif new_estado == 'resuelto':
-            item['fecha_resolucion'] = now
-        
-        table.put_item(Item=item)
-        
-        # Notify student about status change
-        if item.get('creado_por'):
-            _notify_estado_change(item.get('creado_por'), item, old_estado, new_estado)
-        
-        # Notify admin about worker update
-        _notify_admin_trabajador_update(item, new_estado, current_user.get('email'))
         
         return _resp(200, item)
 
