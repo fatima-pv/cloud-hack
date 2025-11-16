@@ -128,6 +128,44 @@ function logWsMessage(message, type = 'info') {
     wsMessages.scrollTop = wsMessages.scrollHeight;
 }
 
+// Mostrar notificación de cambio de estado
+function showEstadoChangeNotification(data) {
+    const { titulo, old_estado, new_estado, mensaje, incidente_id } = data;
+    
+    // Crear notificación toast
+    const notification = document.createElement('div');
+    notification.className = 'estado-notification';
+    notification.innerHTML = `
+        <div class="notification-icon">🔔</div>
+        <div class="notification-content">
+            <strong>¡Estado Actualizado!</strong>
+            <p>${mensaje}</p>
+            <small>Incidente: ${titulo}</small>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    // Agregar al body
+    document.body.appendChild(notification);
+    
+    // Auto-eliminar después de 8 segundos
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 300);
+    }, 8000);
+    
+    // También mostrar en el log de WebSocket
+    logWsMessage(`🔔 ${mensaje}`, 'success');
+    
+    // Intentar mostrar notificación del navegador
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Incidente Actualizado', {
+            body: mensaje,
+            icon: '🔔'
+        });
+    }
+}
+
 // Update WebSocket status
 function updateWsStatus(connected) {
     wsConnected = connected;
@@ -152,11 +190,17 @@ function connectWebSocket() {
         return;
     }
 
+    // Obtener email del usuario actual para las notificaciones
+    const userEmail = currentUser ? currentUser.email : '';
     const wsUrl = getWsUrl();
-    logWsMessage(`Connecting to ${wsUrl}...`, 'info');
+    
+    // Agregar email como query parameter para recibir notificaciones personalizadas
+    const wsUrlWithEmail = userEmail ? `${wsUrl}?email=${encodeURIComponent(userEmail)}` : wsUrl;
+    
+    logWsMessage(`Connecting to ${wsUrlWithEmail}...`, 'info');
     
     try {
-        ws = new WebSocket(wsUrl);
+        ws = new WebSocket(wsUrlWithEmail);
         
         ws.onopen = () => {
             logWsMessage('✅ WebSocket connected successfully!', 'success');
@@ -168,6 +212,15 @@ function connectWebSocket() {
             try {
                 const data = JSON.parse(event.data);
                 logWsMessage(`Parsed data: ${JSON.stringify(data, null, 2)}`, 'success');
+                
+                // Manejar notificación de cambio de estado
+                if (data.action === 'estado_change') {
+                    // Mostrar notificación visual
+                    showEstadoChangeNotification(data);
+                    
+                    // Refrescar la lista de incidentes para mostrar el cambio
+                    setTimeout(() => loadIncidents(), 1000);
+                }
             } catch (e) {
                 // Not JSON, just display as is
             }
