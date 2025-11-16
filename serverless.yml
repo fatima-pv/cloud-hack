@@ -10,7 +10,7 @@ provider:
     TABLE_NAME: ReportsTable
     CONNECTIONS_TABLE: ConnectionsTable
     WS_STAGE: prod
-  role: arn:aws:iam::640145907648:role/LabRole
+  role: arn:aws:iam::175670145706:role/LabRole
   iamRoleStatements:
     - Effect: Allow
       Action:
