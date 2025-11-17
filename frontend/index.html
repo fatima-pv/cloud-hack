@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>🚨 Incident Management System</h1>
+            <h1>🚨 AlertaUTEC 🚨</h1>
             <div class="user-info" id="userInfo">
                 <span id="userName"></span>
                 <span id="userType" class="user-badge"></span>
@@ -24,35 +24,35 @@
         <div class="main-content">
             <!-- Left Panel - Create Incident -->
             <div class="panel">
-                <h2>📝 Create New Incident</h2>
+                <h2>📝 Crear Nuevo Incidente</h2>
                 <form id="incidentForm">
                     <div class="form-group">
-                        <label for="titulo">Título (Title):</label>
+                        <label for="titulo">Título:</label>
                         <input type="text" id="titulo" name="titulo" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="descripcion">Descripción (Description):</label>
+                        <label for="descripcion">Descripción:</label>
                         <textarea id="descripcion" name="descripcion" rows="3" required></textarea>
                     </div>
                     
                     <div class="form-group">
-                        <label for="tipo">Tipo (Type):</label>
+                        <label for="tipo">Tipo:</label>
                         <input type="text" id="tipo" name="tipo" placeholder="e.g., Eléctrico, Plomería, Estructural">
                     </div>
 
                     <div class="form-group">
-                        <label for="piso">Piso (Floor):</label>
+                        <label for="piso">Piso:</label>
                         <input type="text" id="piso" name="piso" placeholder="e.g., 1, 2, 3">
                     </div>
 
                     <div class="form-group">
-                        <label for="lugar_especifico">Lugar Específico (Specific Location):</label>
+                        <label for="lugar_especifico">Lugar Específico:</label>
                         <input type="text" id="lugar_especifico" name="lugar_especifico" placeholder="e.g., Sala 101, Baño Principal">
                     </div>
 
                     <div class="form-group">
-                        <label for="nivel_urgencia">Nivel de Urgencia (Urgency Level):</label>
+                        <label for="nivel_urgencia">Nivel de Urgencia:</label>
                         <select id="nivel_urgencia" name="nivel_urgencia" required>
                             <option value="">-- Selecciona un nivel --</option>
                             <option value="bajo">🟢 Bajo - No requiere atención inmediata</option>
@@ -63,7 +63,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="tipo_trabajador_requerido">Tipo de Trabajador Requerido (Worker Type Required) <span style="color: #999; font-weight: normal;">(Opcional)</span>:</label>
+                        <label for="tipo_trabajador_requerido">Tipo de Trabajador Requerido <span style="color: #999; font-weight: normal;">(Opcional)</span>:</label>
                         <select id="tipo_trabajador_requerido" name="tipo_trabajador_requerido">
                             <option value="">-- No especificado (Admin decidirá) --</option>
                             <option value="TI">💻 TI (Tecnología de la Información)</option>
@@ -97,8 +97,8 @@
             </div>
         </div>
 
-        <!-- WebSocket Messages Panel -->
-        <div class="panel ws-panel">
+        <!-- WebSocket Messages Panel (Hidden) -->
+        <div class="panel ws-panel" style="display: none;">
             <div class="panel-header">
                 <h2>💬 WebSocket Messages (Real-time Updates)</h2>
                 <button id="connectWsBtn" class="btn btn-secondary" style="display: none;">Connect WebSocket</button>

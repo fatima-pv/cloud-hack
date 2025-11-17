@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #002147 0%, #003366 100%);
     min-height: 100vh;
     padding: 20px;
 }
@@ -27,6 +27,7 @@ header {
     align-items: center;
     flex-wrap: wrap;
     gap: 15px;
+    border-top: 4px solid #FF6B35;
 }
 
 h1 {
@@ -59,17 +60,17 @@ h1 {
 }
 
 .badge-estudiante {
-    background: #2196F3;
+    background: #003366;
     color: white;
 }
 
 .badge-trabajador {
-    background: #4CAF50;
+    background: #F77F00;
     color: white;
 }
 
 .badge-admin {
-    background: #FF5722;
+    background: #FF6B35;
     color: white;
 }
 
@@ -108,7 +109,7 @@ h1 {
 }
 
 .status-dot.connected {
-    background: #44ff44;
+    background: #F77F00;
 }
 
 @keyframes pulse {
@@ -178,7 +179,7 @@ input[type="text"]:focus,
 textarea:focus,
 select:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #FF6B35;
 }
 
 .btn {
@@ -192,19 +193,23 @@ select:focus {
 }
 
 .btn-primary {
-    background: #667eea;
+    background: #FF6B35;
     color: white;
     width: 100%;
 }
 
 .btn-primary:hover {
-    background: #5568d3;
+    background: #F77F00;
     transform: translateY(-2px);
 }
 
 .btn-secondary {
-    background: #f0f0f0;
-    color: #333;
+    background: #003366;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #002147;
 }
 
 .btn-secondary:hover {
@@ -244,11 +249,11 @@ select:focus {
     padding: 15px;
     border-radius: 5px;
     margin-bottom: 10px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #FF6B35;
 }
 
 .incident-card h3 {
-    color: #333;
+    color: #002147;
     margin-bottom: 8px;
     font-size: 16px;
 }
@@ -269,18 +274,18 @@ select:focus {
 }
 
 .severity.low {
-    background: #d4edda;
-    color: #155724;
+    background: #E8F5E9;
+    color: #1B5E20;
 }
 
 .severity.medium {
-    background: #fff3cd;
-    color: #856404;
+    background: #FFF3E0;
+    color: #E65100;
 }
 
 .severity.high {
-    background: #ffe5cc;
-    color: #cc5500;
+    background: #FFE5D9;
+    color: #D84315;
 }
 
 .severity.critical {
@@ -469,27 +474,27 @@ select:focus {
 }
 
 .estado-pendiente {
-    background: #FFF3CD;
-    color: #856404;
+    background: #FFE5D9;
+    color: #D84315;
 }
 
 .estado-asignado {
-    background: #D1ECF1;
-    color: #0C5460;
+    background: #E3F2FD;
+    color: #002147;
 }
 
 .estado-en_proceso {
-    background: #CCE5FF;
-    color: #004085;
+    background: #FFF3E0;
+    color: #E65100;
 }
 
 .estado-resuelto {
-    background: #D4EDDA;
-    color: #155724;
+    background: #E8F5E9;
+    color: #1B5E20;
 }
 
 .estado-cerrado {
-    background: #6c757d;
+    background: #003366;
     color: white;
 }
 
@@ -542,7 +547,7 @@ select:focus {
 
 .modal-content h2 {
     margin-bottom: 20px;
-    color: #333;
+    color: #002147;
 }
 
 .modal-actions {
@@ -567,7 +572,7 @@ select:focus {
 .modal input[type="text"]:focus,
 .modal textarea:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #FF6B35;
 }
 
 /* Help text styles */
@@ -624,27 +629,27 @@ select:focus {
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
-    background: #e3f2fd;
-    color: #1976d2;
+    background: #E3F2FD;
+    color: #002147;
     border: 1px solid #90caf9;
 }
 
 /* Alert info box */
 .alert-info {
-    background: #e3f2fd;
+    background: #E3F2FD;
     padding: 12px;
     border-radius: 6px;
     margin-bottom: 15px;
-    border-left: 4px solid #2196F3;
-    color: #0d47a1;
+    border-left: 4px solid #FF6B35;
+    color: #002147;
 }
 
 .alert-info strong {
-    color: #1565c0;
+    color: #002147;
 }
 
 .alert-info small {
-    color: #1976d2;
+    color: #003366;
     font-size: 11px;
 }
 
@@ -672,15 +677,15 @@ select:focus {
 }
 
 .estado-notification {
-    border-left-color: #4CAF50;
+    border-left-color: #1B5E20;
 }
 
 .asignacion-notification {
-    border-left-color: #FF9800;
+    border-left-color: #FF6B35;
 }
 
 .trabajador-notification {
-    border-left-color: #2196F3;
+    border-left-color: #002147;
 }
 
 .notification-icon {
@@ -695,20 +700,20 @@ select:focus {
 
 .notification-content h3 {
     margin: 0 0 8px 0;
-    color: #333;
+    color: #002147;
     font-size: 16px;
     font-weight: 600;
 }
 
 .notification-content p {
     margin: 4px 0;
-    color: #666;
+    color: #333;
     font-size: 14px;
     line-height: 1.4;
 }
 
 .notification-content strong {
-    color: #333;
+    color: #002147;
     font-weight: 600;
 }
 
@@ -729,7 +734,7 @@ select:focus {
 }
 
 .notification-close:hover {
-    color: #333;
+    color: #002147;
 }
 
 /* Animations */
