@@ -341,6 +341,7 @@ select:focus {
 
 .config-panel {
     grid-column: 1 / -1;
+    display: none !important; /* Hidden for all users - API configuration is hardcoded */
 }
 
 .config-panel h3 {
