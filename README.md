@@ -27,15 +27,15 @@ cloud-hack/
 │   ├── index.html       # Página principal (requiere auth)
 │   ├── login.html       # Página de login
 │   ├── register.html    # Página de registro
-│   ├── app.js          # Lógica principal
-│   ├── auth.js         # Lógica de autenticación
-│   ├── style.css       # Estilos principales
-│   └── auth-style.css  # Estilos de autenticación
+│   ├── app.js           # Lógica principal
+│   ├── auth.js          # Lógica de autenticación
+│   ├── style.css        # Estilos principales
+│   └── auth-style.css   # Estilos de autenticación
 ├── docs/
-│   ├── AUTH_README.md  # Documentación de autenticación
-│   └── test-users.md   # Usuarios de prueba
-├── serverless.yml      # Configuración Serverless
-└── requirements.txt    # Dependencias Python
+│   ├── AUTH_README.md   # Documentación de autenticación
+│   └── test-users.md    # Usuarios de prueba
+├── serverless.yml       # Configuración Serverless
+└── requirements.txt     # Dependencias Python
 ```
 
 ## 🔧 Tecnologías
@@ -106,26 +106,40 @@ Actualiza las URLs en:
 2. Completa el formulario:
    - Nombre completo
    - Email (determina el tipo de usuario automáticamente)
+      - Si colocas tu email personal usando el formato `pepe@personal@utec.edu.pe`, se te creará una cuenta como **trabajador personal** y serás dirigido a tu dashboard personal, donde verás las incidencias que el admin te asigne. Desde este dashboard podrás marcar tus incidencias como "comenzada" o "terminada", y cada actualización enviará una notificación a los usuarios involucrados, quienes podrán ver el cambio de estado en su perfil.
+      - Si colocas tu email con formato `pepe@admin@utec.edu.pe`, tu cuenta será de **administrador** (_admin_) y tendrás acceso a un perfil y dashboard de administración. Ahí podrás ver todas las incidencias reportadas, cancelarlas, asignarlas a los trabajadores según áreas, y hacer seguimiento en tiempo real al estado de cada una.
+      - Si usas un correo que termine en `@utec.edu.pe` sin `@admin` ni `@personal`, el sistema te creará una cuenta de **estudiante**, con acceso a la creación y monitoreo de incidencias propias.
    - Contraseña (mínimo 6 caracteres)
 3. Click en "Crear Cuenta"
 
-**Tipos de usuario según email:**
-- `usuario@utec.edu.pe` → Estudiante
-- `usuario@admin.utec.edu.pe` → Admin
-- `usuario@otro.com` → Trabajador
+**Resumen de tipos de usuario:**
+- `usuario@utec.edu.pe` → Estudiante  
+  Puede crear incidencias y ver el estado de sus propias incidencias (incluidas notificaciones cuando actualizan su reporte).
+- `usuario@personal@utec.edu.pe` → Personal/Trabajador  
+  Cuenta tipo trabajador. Recibe en su dashboard personal las incidencias asignadas por el admin, puede marcarlas como iniciadas o terminadas, y notifica automáticamente a los usuarios afectados.
+- `usuario@admin@utec.edu.pe` → Administrador  
+  Perfil para administración general. Visualiza todas las incidencias globalmente, cancela o reasigna tareas, y gestiona los flujos entre estudiantes y trabajadores.
 
 ### Login
 
 1. Abre `frontend/login.html`
 2. Ingresa email y contraseña
-3. Serás redirigido a la aplicación principal
+3. Serás redirigido a la aplicación principal correspondiente según tu tipo de usuario
 
 ### Crear Incidente
 
-1. En la página principal (requiere login)
+1. En la página principal (requiere login como estudiante)
 2. Completa el formulario de incidente
 3. Click en "Submit Incident"
 4. El incidente se guarda y se notifica vía WebSocket
+
+### Dashboard Personal, Asignación y Notificaciones
+
+- Si eres trabajador (`@personal@utec.edu.pe`):  
+  En tu dashboard tendrás solo las incidencias que el administrador te haya asignado. Puedes marcar cuándo las empiezas y terminas. Cada acción actualiza el estado y notifica automáticamente a los usuarios asociados a la incidencia en su perfil.
+- Si eres administrador (`@admin@utec.edu.pe`):  
+  Tu perfil incluye el dashboard global de incidencias. Puedes ver, cancelar u organizar incidencias y (re)asignarlas a los trabajadores según área.
+- Todos los usuarios pueden ver sus propias notificaciones sobre incidencias en la sección "Notificaciones" de su perfil.
 
 ## 🧪 Testing
 
@@ -194,7 +208,7 @@ aws configure
 - [ ] Dashboard de métricas
 
 ## 👥 Contribuidores
-
+Fatima Pacheco, Diego Alarcon y Valentino Contreras con mucho amor
 Proyecto desarrollado para UTEC Cloud Computing.
 
 ## 📄 Licencia
