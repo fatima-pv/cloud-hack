@@ -106,9 +106,8 @@ Actualiza las URLs en:
 2. Completa el formulario:
    - Nombre completo
    - Email (determina el tipo de usuario automáticamente)
-      - Si colocas tu email personal usando el formato `pepe@personal@utec.edu.pe`, se te creará una cuenta como **trabajador personal** y serás dirigido a tu dashboard personal, donde verás las incidencias que el admin te asigne. Desde este dashboard podrás marcar tus incidencias como "comenzada" o "terminada", y cada actualización enviará una notificación a los usuarios involucrados, quienes podrán ver el cambio de estado en su perfil.
+      - Si colocas tu email personal usando el formato `pepe@personal@utec.edu.pe`, se te creará una cuenta como **trabajador (area de trabajo)** y serás dirigido a tu dashboard personal, donde verás las incidencias que el admin te asigne. Desde este dashboard podrás marcar tus incidencias como "comenzada" o "terminada", y cada actualización enviará una notificación a los usuarios involucrados, quienes podrán ver el cambio de estado en su perfil.
       - Si colocas tu email con formato `pepe@admin@utec.edu.pe`, tu cuenta será de **administrador** (_admin_) y tendrás acceso a un perfil y dashboard de administración. Ahí podrás ver todas las incidencias reportadas, cancelarlas, asignarlas a los trabajadores según áreas, y hacer seguimiento en tiempo real al estado de cada una.
-      - Si usas un correo que termine en `@utec.edu.pe` sin `@admin` ni `@personal`, el sistema te creará una cuenta de **estudiante**, con acceso a la creación y monitoreo de incidencias propias.
    - Contraseña (mínimo 6 caracteres)
 3. Click en "Crear Cuenta"
 
@@ -116,7 +115,7 @@ Actualiza las URLs en:
 - `usuario@utec.edu.pe` → Estudiante  
   Puede crear incidencias y ver el estado de sus propias incidencias (incluidas notificaciones cuando actualizan su reporte).
 - `usuario@personal@utec.edu.pe` → Personal/Trabajador  
-  Cuenta tipo trabajador. Recibe en su dashboard personal las incidencias asignadas por el admin, puede marcarlas como iniciadas o terminadas, y notifica automáticamente a los usuarios afectados.
+  Al hacer el registro verifica cuando se pone el @personal y le da la opcion de elegir su area de trabajo. Cuenta tipo trabajador. Recibe en su dashboard personal las incidencias asignadas por el admin, puede marcarlas como iniciadas o terminadas, y notifica automáticamente a los usuarios afectados.
 - `usuario@admin@utec.edu.pe` → Administrador  
   Perfil para administración general. Visualiza todas las incidencias globalmente, cancela o reasigna tareas, y gestiona los flujos entre estudiantes y trabajadores.
 
@@ -141,38 +140,13 @@ Actualiza las URLs en:
   Tu perfil incluye el dashboard global de incidencias. Puedes ver, cancelar u organizar incidencias y (re)asignarlas a los trabajadores según área.
 - Todos los usuarios pueden ver sus propias notificaciones sobre incidencias en la sección "Notificaciones" de su perfil.
 
-## 🧪 Testing
-
-Ver `docs/test-users.md` para usuarios de prueba preconfigurables.
-
-### Testing con cURL
-
-```bash
-# Registro
-curl -X POST https://YOUR_API/dev/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"nombre":"Test User","email":"test@utec.edu.pe","password":"test123"}'
-
-# Login
-curl -X POST https://YOUR_API/dev/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@utec.edu.pe","password":"test123"}'
-```
-
-## 🔐 Seguridad
-
-- Contraseñas hasheadas con SHA-256
-- Validación de email único
-- CORS configurado
-- Protección de rutas en frontend
-- Variables de entorno para configuración
-
 ## 📊 Recursos AWS Creados
 
-- **Lambda Functions**: 4 (auth, api, wsConnect, wsDisconnect)
+- **Lambda Functions**: 5 (auth, api, user, wsConnect, wsDisconnect)
 - **DynamoDB Tables**: 3 (Users, Reports, Connections)
 - **API Gateway**: 2 (REST API, WebSocket API)
 - **IAM Roles**: Configurado con LabRole para AWS Academy
+- entre otros
 
 ## 🐛 Troubleshooting
 
@@ -188,27 +162,9 @@ pip install boto3
 aws configure
 ```
 
-### Frontend no conecta con backend
-1. Verifica las URLs en los archivos de configuración
-2. Asegúrate de que CORS esté habilitado
-3. Revisa la consola del navegador para errores
-
-## 📚 Documentación Adicional
-
-- [Documentación de Autenticación](docs/AUTH_README.md)
-- [Usuarios de Prueba](docs/test-users.md)
-
-## 🔄 Próximos Pasos
-
-- [ ] Implementar JWT tokens
-- [ ] Agregar roles y permisos específicos por tipo de usuario
-- [ ] Recuperación de contraseña
-- [ ] Verificación de email
-- [ ] Panel de administración
-- [ ] Dashboard de métricas
-
 ## 👥 Contribuidores
 Fatima Pacheco, Diego Alarcon y Valentino Contreras con mucho amor
+//
 Proyecto desarrollado para UTEC Cloud Computing.
 
 ## 📄 Licencia
